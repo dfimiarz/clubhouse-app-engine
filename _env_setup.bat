@@ -1,0 +1,6 @@
+SET PORT=nodeport
+SET CLIENT_URL=
+SET SQL_USER=root
+SET SQL_PASSWORD=password
+SET SQL_DATABASE=database
+SET SQL_PORT=port
