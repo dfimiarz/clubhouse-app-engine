@@ -19,18 +19,41 @@ router.get('/',(req,res,next) => {
                  bumpable: false,
                  court: 4,
                  date: "20190101",
-                 start: 915,
-                 end: 945,
+                 startmin: 915,
+                 endmin: 945,
                  duration: 15,
                  players: [
-                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeaterlbl: "Non-repeater"},
-                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeaterlbl: "Non-repeater"}
+                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
+                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
                          ]
             },
+            { 
+                id: 2,
+                bumpable: false,
+                court: 4,
+                date: "20190101",
+                startmin: 600,
+                endmin: 660,
+                duration: 15,
+                players: [
+                             {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
+                             {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
+                        ]
+           },
             
     ]
 
     res.json(matches)
+
+})
+
+router.post('/',(req,res,next) =>{
+
+    const matches = req.body.players
+
+    console.log(matches)
+
+    res.status(201).send()
 
 })
 
