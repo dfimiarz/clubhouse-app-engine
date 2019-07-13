@@ -1,6 +1,7 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const { body, validationResult } = require('express-validator')
+const matchcontroller = require('./controller')
 
 
 const router = express.Router();
@@ -51,9 +52,15 @@ router.post('/',(req,res,next) =>{
 
     const matches = req.body.players
 
-    console.log(matches)
+    matchcontroller.addMatch(req)
+     .then((courts)=>{
+        res.status(201).send()
+     })
+     .catch((err) => {
+          next(err)
+     })
 
-    res.status(201).send()
+    
 
 })
 
