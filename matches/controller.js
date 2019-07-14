@@ -8,32 +8,37 @@ async function addMatch( request ){
 
     
     const players = request.body.players
-    const court = 1
-    const starttime = "2019-01-01 12:30:00"
-    const endtime = "2019-01-10 12:45:00"
-    const note = ""
-
-
-    console.log(JSON.stringify(players))
+    const court = request.body.court
+    const starttime = request.body.starttime
+    const endtime = request.body.endtime
+    const note = request.body.note
 
     const connection = await sqlconnector.getConnection()
     
     try{
-
         await sqlconnector.runQuery(connection,"LOCK TABLE `activity` WRITE, `player` WRITE")
-
-        await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?)`,[court,starttime,endtime,JSON.stringify(players),note])
-
-        await sqlconnector.runQuery(connection,"UNLOCK TABLES")
-
+        
+        try {
+            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?)`,[court,starttime,endtime,JSON.stringify(players),note])
+        }
+        catch(error){
+            throw error
+        }
+        finally {
+            try {
+                await sqlconnector.runQuery(connection,"UNLOCK TABLES")
+            }
+            catch( error ) {
+                throw error
+            }
+        }
     }
     catch(error){
-        throw error
+        throw new Error( error.sqlMessage )
     }
     finally{
         connection.release()
     }
-    
 }
 
 module.exports = {
