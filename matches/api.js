@@ -19,10 +19,10 @@ router.get('/',(req,res,next) => {
                  id: 1,
                  bumpable: false,
                  court: 4,
-                 date: "20190101",
+                 start: "2019-07-13 12:30:00",
+                 end: "2019-07-13 13:30:00",
                  startmin: 915,
                  endmin: 945,
-                 duration: 15,
                  players: [
                               {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
                               {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
@@ -32,10 +32,10 @@ router.get('/',(req,res,next) => {
                 id: 2,
                 bumpable: false,
                 court: 4,
-                date: "20190101",
+                start: "2019-07-13 13:30:00",
+                end: "2019-07-13 14:30:00",
                 startmin: 600,
                 endmin: 660,
-                duration: 15,
                 players: [
                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
