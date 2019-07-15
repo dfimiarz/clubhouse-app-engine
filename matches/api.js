@@ -14,43 +14,47 @@ router.use(bodyParser.json())
  */
 router.get('/',(req,res,next) => {
 
-    const matches =[
-            { 
-                 id: 1,
-                 bumpable: false,
-                 court: 4,
-                 start: "2019-07-13 12:30:00",
-                 end: "2019-07-13 13:30:00",
-                 startmin: 915,
-                 endmin: 945,
-                 players: [
-                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
-                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
-                         ]
-            },
-            { 
-                id: 2,
-                bumpable: false,
-                court: 4,
-                start: "2019-07-13 13:30:00",
-                end: "2019-07-13 14:30:00",
-                startmin: 600,
-                endmin: 660,
-                players: [
-                             {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
-                             {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
-                        ]
-           },
+//     const matches =[
+//             { 
+//                  id: 1,
+//                  bumpable: false,
+//                  court: 4,
+//                  start: "2019-07-13 12:30:00",
+//                  end: "2019-07-13 13:30:00",
+//                  startmin: 915,
+//                  endmin: 945,
+//                  players: [
+//                               {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
+//                               {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
+//                          ]
+//             },
+//             { 
+//                 id: 2,
+//                 bumpable: false,
+//                 court: 4,
+//                 start: "2019-07-13 13:30:00",
+//                 end: "2019-07-13 14:30:00",
+//                 startmin: 600,
+//                 endmin: 660,
+//                 players: [
+//                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
+//                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
+//                         ]
+//            },
             
-    ]
+//     ]
 
-    res.json(matches)
+     matchcontroller.getMatchesForDate(req)
+     .then((matches)=>{
+          res.send(matches)
+     })
+     .catch((err) => {
+          next(err)
+     })
 
 })
 
 router.post('/',(req,res,next) =>{
-
-    const matches = req.body.players
 
     matchcontroller.addMatch(req)
      .then((courts)=>{

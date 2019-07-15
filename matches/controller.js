@@ -1,5 +1,28 @@
 const sqlconnector = require('../db/SqlConnector')
 
+async function getMatchesForDate(request){
+
+    const date = request.body.date
+
+    const connection = await sqlconnector.getConnection()
+    const query = `SELECT * FROM activities_view `
+    try{
+
+        const matches_array = await sqlconnector.runQuery(connection,query)
+        
+        return matches_array.map( matchinfo => matchinfo.details )
+    }
+    catch(error){
+        throw error
+    }
+    finally{
+        connection.release()
+    }
+
+
+}
+
+
 /**
  * 
  * @param { Request } request 
@@ -12,6 +35,7 @@ async function addMatch( request ){
     const starttime = request.body.starttime
     const endtime = request.body.endtime
     const note = request.body.note
+    const bumpable = request.body.bumpable
 
     const connection = await sqlconnector.getConnection()
     
@@ -19,7 +43,7 @@ async function addMatch( request ){
         await sqlconnector.runQuery(connection,"LOCK TABLE `activity` WRITE, `player` WRITE")
         
         try {
-            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?)`,[court,starttime,endtime,JSON.stringify(players),note])
+            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?)`,[court,starttime,endtime,bumpable,note,JSON.stringify(players)])
         }
         catch(error){
             throw error
@@ -42,5 +66,6 @@ async function addMatch( request ){
 }
 
 module.exports = {
-    addMatch: addMatch
+    addMatch: addMatch,
+    getMatchesForDate: getMatchesForDate
 }
