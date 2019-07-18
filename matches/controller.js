@@ -2,15 +2,17 @@ const sqlconnector = require('../db/SqlConnector')
 
 async function getMatchesForDate(request){
 
-    const date = request.body.date
+    const date = request.query.date
+
+    console.log(date)
 
     const connection = await sqlconnector.getConnection()
-    const query = `SELECT * FROM activities_view `
+    const query = `call getActivitiesForDate(?) `
     try{
 
-        const matches_array = await sqlconnector.runQuery(connection,query)
+        let matches_array = await sqlconnector.runQuery(connection,query,date)
         
-        return matches_array.map( matchinfo => matchinfo.details )
+        return matches_array[0].map( matchinfo => matchinfo.match )
     }
     catch(error){
         throw error
