@@ -44,7 +44,9 @@ router.get('/',(req,res,next) => {
             
 //     ]
 
-     matchcontroller.getMatchesForDate(req)
+     const date = req.query.date ? req.query.date : null
+
+     matchcontroller.getMatchesForDate(date)
      .then((matches)=>{
           res.send(matches)
      })
