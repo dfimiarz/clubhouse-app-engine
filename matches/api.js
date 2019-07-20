@@ -79,11 +79,13 @@ const generateSendSseCallback = function(res){
 
 router.get('/watch',(req,res) => {
 
-     res.writeHead(200, {
+     res.set({
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
+          'X-Accel-Buffering': 'no'
      })
+     
      try{
           const sendFunc = generateSendSseCallback(res)
           MatchEventEmitter.on('matchadded', sendFunc )
