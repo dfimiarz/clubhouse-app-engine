@@ -70,12 +70,30 @@ router.post('/',(req,res,next) =>{
 
 })
 
+router.get('/:id',(req,res) => {
+     var match = {
+          id: 32,
+          start: '12:22',
+          end: '13:22',
+          players: [
+               {
+                    name: 'John T'
+               },
+          ],
+          bumpable: false
+     }
+
+     res.send(match)
+})
+
+
 const generateSendSseCallback = function(res){
      return function(message){
           console.log(message)
           res.write(`data: ${message}\n\n`)
      }
 }
+
 
 router.get('/watch',(req,res) => {
 
