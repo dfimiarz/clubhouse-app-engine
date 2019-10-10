@@ -3,6 +3,7 @@ const mysql = require('mysql')
 //Configuration option for the connection pool. See mysql docs for details
 const config = {
     connectionLimit: 10,
+    host: process.env.SQL_HOST | 'localhost',
     user: process.env.SQL_USER,
     password: process.env.SQL_PASSWORD,
     database: process.env.SQL_DATABASE,
