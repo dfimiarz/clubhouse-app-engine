@@ -4,6 +4,7 @@ const express = require('express')
 const createError = require('http-errors')
 const cors = require('cors')
 const app = express()
+require('dotenv').config()
 
 app.set('trust proxy', true)
 
