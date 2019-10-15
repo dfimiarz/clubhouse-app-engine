@@ -15,31 +15,6 @@ router.use(bodyParser.json())
  */
 router.get('/',(req,res,next) => {
 
-//     const matches =[
-//             { 
-//                  id: 1,
-//                  bumpable: false,
-//                  court: 4,
-//                  start: "2019-07-13 12:30:00",
-//                  end: "2019-07-13 13:30:00",
-//                  players: [
-//                               {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
-//                               {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
-//                          ]
-//             },
-//             { 
-//                 id: 2,
-//                 bumpable: false,
-//                 court: 4,
-//                 start: "2019-07-13 13:30:00",
-//                 end: "2019-07-13 14:30:00",
-//                 players: [
-//                              {id: 1, firstname:"Laurent",lastname:"Mars", repeater: 0, repeater_lbl: "Non-repeater"},
-//                              {id: 2, firstname:"Todd",lastname:"Snyder", repeater: 0, repeater_lbl: "Non-repeater"}
-//                         ]
-//            },
-            
-//     ]
 
      const date = req.query.date ? req.query.date : null
 
@@ -71,19 +46,16 @@ router.post('/',(req,res,next) =>{
 })
 
 router.get('/:id',(req,res) => {
-     var match = {
-          id: 32,
-          start: '12:22',
-          end: '13:22',
-          players: [
-               {
-                    name: 'John T'
-               },
-          ],
-          bumpable: false
-     }
+     
+     const id = req.params.id ? req.params.id : null
 
-     res.send(match)
+     matchcontroller.getMatchDetails(id)
+     .then((matchinfo)=>{
+          res.send(matchinfo)
+     })
+     .catch((err) => {
+          next(err)
+     })
 })
 
 
