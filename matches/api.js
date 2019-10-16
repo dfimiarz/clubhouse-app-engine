@@ -45,13 +45,19 @@ router.post('/',(req,res,next) =>{
 
 })
 
-router.get('/:id',(req,res) => {
+router.get('/:id',(req,res,next) => {
      
      const id = req.params.id ? req.params.id : null
 
      matchcontroller.getMatchDetails(id)
-     .then((matchinfo)=>{
-          res.send(matchinfo)
+     .then((results)=>{ 
+          
+          var vals = results.map((result) => {
+               return result.match
+          })
+
+          res.json( vals.length === 1 ? JSON.parse(vals): null);
+
      })
      .catch((err) => {
           next(err)

@@ -73,16 +73,16 @@ async function addMatch( request ){
 async function getMatchDetails(id){
 
     let query = `SELECT
-                    JSON_OBJECT('id', a.id, 'updated' , a.updated ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'notes', a.notes , 'time' , convert_tz(now(),'UTC',cl.time_zone) ,'players', p.players) as 'match'
+                    JSON_OBJECT('id', a.id, 'updated' , a.updated ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'notes', a.notes , 'players', p.players) as 'match'
                 FROM 
                     activity a
-                JOIN court c ON a.court = c.id 
-                JOIN club cl ON cl.id = c.club  
                 LEFT JOIN (
-                    SELECT activity,cast(concat('[',group_concat(json_object('id',person,'repeater',player.type,'firstname',p.firstname,'lastname',p.lastname)),']') as JSON) as players 
+                    SELECT activity,cast(concat('[',group_concat(json_object('id',person,'firstname',p.firstname,'lastname',p.lastname,'type',pt.desc)),']') as JSON) as players 
                     FROM player
-                    join person p on p.id = player.person
-                    GROUP BY activity ) p 
+                    JOIN person p on p.id = player.person
+                    JOIN player_type pt on pt.id = player.type
+                    GROUP BY activity 
+                    ) p 
                 ON a.id = p.activity
                 WHERE a.id = ?`;
 
