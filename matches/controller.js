@@ -73,7 +73,7 @@ async function addMatch( request ){
 async function getMatchDetails(id){
 
     let query = `SELECT
-                    JSON_OBJECT('id', a.id, 'updated' , MD5(a.updated) ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'notes', a.notes , 'players', p.players) as 'match'
+                    JSON_OBJECT('id', a.id, 'updated' , MD5(a.updated) ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'note', a.notes , 'players', p.players) as 'match'
                 FROM 
                     activity a
                 LEFT JOIN (
