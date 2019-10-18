@@ -33,8 +33,9 @@ async function addMatch( request ){
     
     const players = request.body.players
     const court = request.body.court
-    const starttime = request.body.starttime
-    const endtime = request.body.endtime
+    const date = request.body.date
+    const start = request.body.start
+    const end = request.body.end
     const note = request.body.note
     const bumpable = request.body.bumpable
 
@@ -44,7 +45,7 @@ async function addMatch( request ){
         await sqlconnector.runQuery(connection,"LOCK TABLE `activity` WRITE, `player` WRITE")
         
         try {
-            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?)`,[court,starttime,endtime,bumpable,note,JSON.stringify(players)])
+            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
         }
         catch(error){
             throw error
@@ -73,7 +74,7 @@ async function addMatch( request ){
 async function getMatchDetails(id){
 
     let query = `SELECT
-                    JSON_OBJECT('id', a.id, 'updated' , MD5(a.updated) ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'note', a.notes , 'players', p.players) as 'match'
+                    JSON_OBJECT('id', a.id, 'updated' , MD5(a.updated) ,'date', a.date ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'note', a.notes , 'players', p.players) as 'match'
                 FROM 
                     activity a
                 LEFT JOIN (
