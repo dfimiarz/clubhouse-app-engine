@@ -56,7 +56,7 @@ router.get('/:id',(req,res,next) => {
                return result.match
           })
 
-          res.json( vals.length === 1 ? JSON.parse(vals): null);
+          res.json( vals.length === 1 ? JSON.parse(vals[0]): null);
 
      })
      .catch((err) => {
