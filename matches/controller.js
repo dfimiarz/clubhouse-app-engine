@@ -39,6 +39,10 @@ async function addMatch( request ){
     const note = request.body.note
     const bumpable = request.body.bumpable
 
+    console.log(new Date(date.concat(' ',start)))
+    console.log(new Date(date.concat(' ',end)))
+    console.log(new Date('2019-10-20T09:00:00').getTimezoneOffset())
+
     const connection = await sqlconnector.getConnection()
     
     try{
@@ -74,7 +78,19 @@ async function addMatch( request ){
 async function getMatchDetails(id){
 
     let query = `SELECT
-                    JSON_OBJECT('id', a.id, 'updated' , MD5(a.updated) ,'date', a.date ,'start', a.start, 'end' , a.end , 'court' , a.court, 'bumpable', bumpable , 'note', a.notes , 'players', p.players) as 'match'
+                    JSON_OBJECT(
+                            'id', a.id, 
+                            'updated' , MD5(a.updated), 
+                            'date' , a.date  ,
+                            'start', a.start, 
+                            'end' , a.end , 
+                            'court' , a.court, 
+                            'bumpable', bumpable , 
+                            'notes', a.notes , 
+                            'players', p.players, 
+                            'utc_start', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )),
+                            'utc_end', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone ))
+                        ) as 'match'
                 FROM 
                     activity a
                 LEFT JOIN (
@@ -83,8 +99,10 @@ async function getMatchDetails(id){
                     JOIN person p on p.id = player.person
                     JOIN player_type pt on pt.id = player.type
                     GROUP BY activity 
-                    ) p 
+                    ) p
                 ON a.id = p.activity
+                JOIN court c ON a.court = c.id
+                JOIN club cl ON cl.id = c.club
                 WHERE a.id = ?`;
 
     const connection = await sqlconnector.getConnection()

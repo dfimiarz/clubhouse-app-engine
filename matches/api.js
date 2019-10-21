@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { body, validationResult } = require('express-validator')
 const matchcontroller = require('./controller')
+const { extractMatchPermissions } = require('./permissions')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 
 
@@ -47,21 +48,47 @@ router.post('/',(req,res,next) =>{
 
 router.get('/:id',(req,res,next) => {
      
+          const id = req.params.id ? req.params.id : null
+
+          matchcontroller.getMatchDetails(id)
+          .then((results)=>{ 
+
+               if( results.length !== 1 )
+                    res.json(null)
+               
+               res.locals.match = JSON.parse(results[0].match)
+               next()
+               
+          })
+          .catch((err) => {
+               next(err)
+          })
+     },
+     extractMatchPermissions,
+     (req,res,next) => {
+
+     res.json(res.locals.match)
+     }
+)
+
+router.delete('/:id',(req,res,next) => {
+
+     console.log("In delete")
+
+     var hash = req.query.hash ? req.query.hash: null
+
+     if( hash === null ){
+          next(new Error('Missing match hash code'))
+     }
+
      const id = req.params.id ? req.params.id : null
 
-     matchcontroller.getMatchDetails(id)
-     .then((results)=>{ 
-          
-          var vals = results.map((result) => {
-               return result.match
-          })
+     if( id === null ){
+          next(new Error('Missing match id'))
+     }
 
-          res.json( vals.length === 1 ? JSON.parse(vals[0]): null);
+     res.status(204).send()
 
-     })
-     .catch((err) => {
-          next(err)
-     })
 })
 
 
