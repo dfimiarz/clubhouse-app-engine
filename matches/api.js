@@ -2,8 +2,9 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { body, validationResult } = require('express-validator')
 const matchcontroller = require('./controller')
-const { extractMatchPermissions } = require('./permissions')
+const { checkMatchPermissions } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
+
 
 
 const router = express.Router();
@@ -64,7 +65,7 @@ router.get('/:id',(req,res,next) => {
                next(err)
           })
      },
-     extractMatchPermissions,
+     checkMatchPermissions,
      (req,res,next) => {
 
      res.json(res.locals.match)
