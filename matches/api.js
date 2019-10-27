@@ -88,7 +88,17 @@ router.delete('/:id',(req,res,next) => {
           next(new Error('Missing match id'))
      }
 
-     res.status(204).send()
+     matchcontroller.endSession(id,hash)
+     .then((results)=>{ 
+
+          res.status(204).send()
+          
+     })
+     .catch((err) => {
+          next(err)
+     })
+
+     
 
 })
 

@@ -1,8 +1,6 @@
 
-function hasRemovePermission( match ){
+function hasRemovePermission( match, curr_time = new Date() ){
 
-    var curr_time = new Date()
-    
     var curr_time_ms = curr_time.getTime()
     var start_time_ms = match.utc_start * 1000
 
@@ -10,9 +8,7 @@ function hasRemovePermission( match ){
 
 }
 
-function hasEndPermission( match ){
-
-    var curr_time = new Date()
+function hasEndPermission( match, curr_time = new Date() ){
     
     var curr_time_ms = curr_time.getTime()
     var start_time_ms = match.utc_start * 1000
