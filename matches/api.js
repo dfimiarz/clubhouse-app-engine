@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { checkSchema, validationResult } = require('express-validator')
 const matchcontroller = require('./controller')
+const { PatchCommandProcessor } = require('./controller')
 const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 
@@ -75,8 +76,9 @@ router.get('/:id',(req,res,next) => {
 router.patch('/:id', validatePatchRequest,
      (req,res,next) => {
 
-     matchcontroller.processCommand(req.params.id,res.locals.cmd)
+     matchcontroller.processPatchCommand( req.params.id,res.locals.cmd)
      .then((results) => {
+          console.log(results)
           res.status(204).send()
      }).catch((err) => {
          

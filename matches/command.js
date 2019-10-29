@@ -30,6 +30,10 @@ function getCommands(){
     return Object.keys(commands)
 }
 
+/**
+ * 
+ * @param { String } cmd_name
+ */
 function getProcessor(cmd_name){
     return hasCommand(cmd_name) ? commands[cmd_name].processor : null
 }
