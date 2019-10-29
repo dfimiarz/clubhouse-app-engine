@@ -1,5 +1,7 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasEndPermission } = require('../permissions/MatchPermissions')
+const { hasEndPermission, hasRemovePermission } = require('../permissions/MatchPermissions')
+const { getProcessor } = require('./command')
+const { MatchCommandProcessor } = require('./processor')
 
 async function getMatchesForDate(date){
 
@@ -104,7 +106,8 @@ async function getMatchDetails(id){
                 ON a.id = p.activity
                 JOIN court c ON a.court = c.id
                 JOIN club cl ON cl.id = c.club
-                WHERE a.id = ?`;
+                WHERE a.id = ?
+                and active = 1`;
 
     const connection = await sqlconnector.getConnection()
 
@@ -138,7 +141,7 @@ async function endSession(id,hash){
                  FROM activity a
                  JOIN court c ON a.court = c.id
                  JOIN club cl ON cl.id = c.club
-                 WHERE a.id = ? and MD5(a.updated) = ?
+                 WHERE a.id = ? and MD5(a.updated) = ? and active = 1
                  FOR UPDATE
                 `
 
@@ -190,11 +193,51 @@ async function endSession(id,hash){
 }
 
 async function removeSession(id,hash){
-    
+    const activity_query = `SELECT
+                    a.id,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end
+                 FROM activity a
+                 WHERE a.id = ? and MD5(a.updated) = ? and active = 1
+                 FOR UPDATE
+                `
+
+    const remove_activity_q = `UPDATE activity SET active = 0 where id = ?`
+
     const connection = await sqlconnector.getConnection()
 
     try{
+        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
 
+        try {
+            const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,hash])
+
+            if (activity_res.length !== 1){
+                throw new Error("Session not found or modified")
+            } 
+
+            let match = activity_res[0]
+            let now = new Date()
+
+            if( ! hasRemovePermission(match,now)){
+                throw new Error("Remove permission denied")
+            }
+
+            await sqlconnector.runQuery(connection,remove_activity_q,[id])
+
+            await sqlconnector.runQuery(connection,"COMMIT",[])
+        }
+        catch( err ){
+
+            try{
+                await sqlconnector.runQuery(connection,"ROLLBACK",[])
+            }
+            catch( err ){
+                throw err
+            }
+            
+            throw err
+        }
     }
     catch( err ){
 
@@ -206,9 +249,22 @@ async function removeSession(id,hash){
     
 }
 
+function processCommand(id,cmd){
+
+    const processor_name = getProcessor(cmd.name)
+
+    if( typeof MatchCommandProcessor[processor_name] === "function" )
+        return MatchCommandProcessor[processor_name](id,cmd.params)
+    else    
+        return Promise.reject("Command processor not found")
+    
+}
+
 module.exports = {
     addMatch: addMatch,
     getMatchesForDate: getMatchesForDate,
     getMatchDetails: getMatchDetails,
-    endSession: endSession
+    endSession: endSession,
+    removeSession: removeSession,
+    processCommand: processCommand
 }

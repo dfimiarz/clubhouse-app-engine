@@ -1,8 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { body, validationResult } = require('express-validator')
+const { checkSchema, validationResult } = require('express-validator')
 const matchcontroller = require('./controller')
-const { checkMatchPermissions } = require('./middleware')
+const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 
 
@@ -72,33 +72,16 @@ router.get('/:id',(req,res,next) => {
      }
 )
 
-router.delete('/:id',(req,res,next) => {
+router.patch('/:id', validatePatchRequest,
+     (req,res,next) => {
 
-     console.log("In delete")
-
-     var hash = req.query.hash ? req.query.hash: null
-
-     if( hash === null ){
-          next(new Error('Missing match hash code'))
-     }
-
-     const id = req.params.id ? req.params.id : null
-
-     if( id === null ){
-          next(new Error('Missing match id'))
-     }
-
-     matchcontroller.endSession(id,hash)
-     .then((results)=>{ 
-
+     matchcontroller.processCommand(req.params.id,res.locals.cmd)
+     .then((results) => {
           res.status(204).send()
-          
-     })
-     .catch((err) => {
+     }).catch((err) => {
+         
           next(err)
      })
-
-     
 
 })
 
