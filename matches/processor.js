@@ -64,12 +64,16 @@ async function endSession(id,cmd){
     }
 }
 
-async function removeSession(id,hash){
+async function removeSession(id,cmd){
+
+    console.log("In remove")
     const activity_query = `SELECT
                     a.id,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end
                  FROM activity a
+                 JOIN court c ON a.court = c.id
+                 JOIN club cl ON cl.id = c.club
                  WHERE a.id = ? and MD5(a.updated) = ? and active = 1
                  FOR UPDATE
                 `
@@ -82,7 +86,7 @@ async function removeSession(id,hash){
         await sqlconnector.runQuery(connection,"START TRANSACTION",[])
 
         try {
-            const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,hash])
+            const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,cmd.hash])
 
             if (activity_res.length !== 1){
                 throw new Error("Session not found or modified")
@@ -112,7 +116,7 @@ async function removeSession(id,hash){
         }
     }
     catch( err ){
-
+        throw err
     }
     finally{
         connection.release()

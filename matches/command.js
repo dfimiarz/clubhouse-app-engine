@@ -18,6 +18,21 @@ commands['END_SESSION'] = {
                             processor: 'endSession' 
                         }
 
+commands['REMOVE_SESSION'] = {  
+                                vschema: {
+                                    "id":"REMOVE_SESSION_SCHEMA",
+                                    "type": "object",
+                                    "properties":{
+                                        "hash":{
+                                            "type": "string",
+                                            "pattern": /[a-fA-F0-9]{32}/
+                                        }
+                                    },
+                                    "required": ["hash"]
+                                },
+                                processor: 'removeSession' 
+                            }
+
 function hasCommand(cmd_name) {
     return Object.keys(commands).includes(cmd_name) ? true : false
 }
