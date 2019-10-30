@@ -52,22 +52,7 @@ async function addMatch( request ){
     const connection = await sqlconnector.getConnection()
     
     try{
-        await sqlconnector.runQuery(connection,"LOCK TABLE `activity` WRITE, `player` WRITE")
-        
-        try {
-            await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
-        }
-        catch(error){
-            throw error
-        }
-        finally {
-            try {
-                await sqlconnector.runQuery(connection,"UNLOCK TABLES")
-            }
-            catch( error ) {
-                throw error
-            }
-        }
+        await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
     }
     catch(error){
         throw new Error( error.sqlMessage )
