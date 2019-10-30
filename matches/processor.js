@@ -66,7 +66,6 @@ async function endSession(id,cmd){
 
 async function removeSession(id,cmd){
 
-    console.log("In remove")
     const activity_query = `SELECT
                     a.id,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
@@ -129,3 +128,31 @@ module.exports = {
     endSession,
     removeSession
 }
+
+/* Psuedocode for updating session time
+start transaction
+
+get session for update
+
+check permissions
+
+---- stored procedure ----
+change_session_time(session_id,start,end){
+
+	get_lock('schedule_lock')
+
+	
+	check for overlap
+
+	change time
+		
+
+
+	release_lock('schedule_lock')
+
+
+}
+----- end stored procedure
+
+commit or rollback
+ */
