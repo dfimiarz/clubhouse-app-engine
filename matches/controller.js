@@ -1,5 +1,5 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasEndPermission, hasRemovePermission } = require('../permissions/MatchPermissions')
+const { hasCreatePermission } = require('../permissions/MatchPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
 
@@ -45,9 +45,12 @@ async function addMatch( request ){
     const note = request.body.note
     const bumpable = request.body.bumpable
 
-    console.log(new Date(date.concat(' ',start)))
-    console.log(new Date(date.concat(' ',end)))
-    console.log(new Date('2019-10-20T09:00:00').getTimezoneOffset())
+    const start_date = new Date(date.concat(' ',start))
+    const end_date = new Date(date.concat(' ',end))
+    
+    if (! hasCreatePermission(start_date,end_date)){
+        throw new Error("Create permission denied")
+    }
 
     const connection = await sqlconnector.getConnection()
     
