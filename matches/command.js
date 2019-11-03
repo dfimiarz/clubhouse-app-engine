@@ -33,6 +33,29 @@ commands['REMOVE_SESSION'] = {
                                 processor: 'removeSession' 
                             }
 
+commands['CHANGE_TIME'] = {
+                                vschema: {
+                                    "id":"CHANGE_TIME_SCHEMA",
+                                    "type": "object",
+                                    "properties":{
+                                        "hash":{
+                                            "type": "string",
+                                            "pattern": /[a-fA-F0-9]{32}/
+                                        },
+                                        "start":{
+                                            "type": "string",
+                                            "pattern": /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/    
+                                        },
+                                        "end":{
+                                            "type": "string",
+                                            "pattern": /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+                                        }
+                                    },
+                                    "required": ["hash","start","end"]
+                                },
+                                processor: 'changeSessionTime' 
+                            }
+
 function hasCommand(cmd_name) {
     return Object.keys(commands).includes(cmd_name) ? true : false
 }

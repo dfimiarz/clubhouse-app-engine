@@ -124,9 +124,14 @@ async function removeSession(id,cmd){
     
 }
 
+async function changeSessionTime(id,cmd){
+
+}
+
 module.exports = {
     endSession,
-    removeSession
+    removeSession,
+    changeSessionTime
 }
 
 /* Psuedocode for updating session time
