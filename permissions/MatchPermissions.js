@@ -21,6 +21,24 @@ function hasEndPermission( match, curr_time = new Date() ){
 
 }
 
+function hasChangeStartPermission( match, curr_time = new Date() ){
+
+    var curr_time_ms = curr_time.getTime()
+    var start_time_ms = match.utc_start * 1000
+
+    return start_time_ms >= curr_time_ms  ? true : false
+
+}
+
+function hasChangeEndPermission( match, curr_time = new Date() ){
+
+    var curr_time_ms = curr_time.getTime()
+    var end_time_ms = match.utc_end * 1000
+
+    return end_time_ms >= curr_time_ms  ? true : false
+
+}
+
 /**
  * 
  * @param { Date } start Requested session start time 
@@ -42,5 +60,7 @@ function hasCreatePermission(start,end ){
 module.exports = {
     hasRemovePermission,
     hasEndPermission,
-    hasCreatePermission
+    hasCreatePermission,
+    hasChangeEndPermission,
+    hasChangeStartPermission
 }

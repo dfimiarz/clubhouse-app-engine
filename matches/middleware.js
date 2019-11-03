@@ -1,4 +1,4 @@
-const { hasRemovePermission, hasEndPermission } = require('../permissions/MatchPermissions')
+const { hasRemovePermission, hasEndPermission, hasChangeEndPermission, hasChangeStartPermission } = require('../permissions/MatchPermissions')
 const Validator = require('jsonschema').Validator
 const { getSchema, getSupportedCommands } = require('./command')
 
@@ -13,6 +13,14 @@ function checkMatchPermissions(req,res,next) {
 
     if( hasEndPermission(match) )
         match.permissions.push('CAN_END')
+
+    if( hasChangeStartPermission(match)){
+        match.permissions.push('CHANGE_START')
+    }
+
+    if( hasChangeEndPermission(match)){
+        match.permissions.push('CHANGE_END')
+    }
 
     res.locals.match = match
 
