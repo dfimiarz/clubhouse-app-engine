@@ -1,5 +1,5 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasEndPermission, hasRemovePermission } = require('../permissions/MatchPermissions')
+const { hasEndPermission, hasRemovePermission, hasChangeEndPermission, hasChangeStartPermission } = require('../permissions/MatchPermissions')
 
 
 async function endSession(id,cmd){
@@ -125,7 +125,63 @@ async function removeSession(id,cmd){
 }
 
 async function changeSessionTime(id,cmd){
+    const activity_query = `SELECT
+                    a.id,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_start,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_end
+                 FROM activity a
+                 JOIN court c ON a.court = c.id
+                 JOIN club cl ON cl.id = c.club
+                 WHERE a.id = ? and MD5(a.updated) = ? and active = 1
+                 FOR UPDATE
+                `
+    const change_time_q = `CALL changeActivityTime(?,?,?)`
+            
+    const connection = await sqlconnector.getConnection()
 
+    const new_start = cmd.start
+    const new_end = cmd.end
+
+    try{
+
+        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
+
+        try {
+            const activity_res = await sqlconnector.runQuery(connection,activity_query,[new_start,new_end,id,cmd.hash])
+
+            if (activity_res.length !== 1){
+                throw new Error("Session not found or modified")
+            } 
+
+            let match = activity_res[0]
+            let now = new Date()
+
+            console.log( match )
+
+            await sqlconnector.runQuery(connection,change_time_q,[id,new_start,new_end])
+
+            await sqlconnector.runQuery(connection,"COMMIT",[])
+        }
+        catch( err ){
+
+            try{
+                await sqlconnector.runQuery(connection,"ROLLBACK",[])
+            }
+            catch( err ){
+                throw err
+            }
+            
+            throw err
+        }
+    }
+    catch( err ){
+        throw err
+    }
+    finally{
+        connection.release()
+    }
 }
 
 module.exports = {

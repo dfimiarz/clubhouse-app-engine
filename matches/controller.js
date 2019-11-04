@@ -2,6 +2,7 @@ const sqlconnector = require('../db/SqlConnector')
 const { hasCreatePermission } = require('../permissions/MatchPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
+const moment = require('moment-timezone')
 
 
 
@@ -45,10 +46,12 @@ async function addMatch( request ){
     const note = request.body.note
     const bumpable = request.body.bumpable
 
-    const start_date = new Date(date.concat(' ',start))
-    const end_date = new Date(date.concat(' ',end))
+    const start_date = moment.tz(date.concat(' ',start),"America/New_York")
+    const end_date = moment.tz(date.concat(' ',end),"America/New_York")
     
-    if (! hasCreatePermission(start_date,end_date)){
+    console.log(start_date.unix())
+
+    if (! hasCreatePermission(new Date(start_date.format()),new Date(end_date.format()))){
         throw new Error("Create permission denied")
     }
 

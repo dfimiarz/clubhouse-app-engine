@@ -49,6 +49,8 @@ function hasCreatePermission(start,end ){
     var start_time_ms = start.getTime()
     var end_time_ms = end.getTime()
 
+    console.log(curr_time_ms,start_time_ms)
+
     var time_offest_allowed = 10 * 60 * 1000
 
     return start_time_ms > (curr_time_ms - time_offest_allowed) ? true : false
