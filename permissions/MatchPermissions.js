@@ -44,12 +44,11 @@ function hasChangeEndPermission( match, curr_time = new Date() ){
  * @param { Date } start Requested session start time 
  * @param { Date } end Requested session end time
  */
-function hasCreatePermission(start,end ){
-    var curr_time_ms = new Date().getTime()
-    var start_time_ms = start.getTime()
-    var end_time_ms = end.getTime()
-
-    console.log(curr_time_ms,start_time_ms)
+function hasCreatePermission(match, curr_time = new Date() ){
+    
+    var curr_time_ms = curr_time.getTime()
+    var start_time_ms = match.utc_start * 1000
+    var end_time_ms = match.utc_end * 1000
 
     var time_offest_allowed = 10 * 60 * 1000
 

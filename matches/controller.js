@@ -2,7 +2,6 @@ const sqlconnector = require('../db/SqlConnector')
 const { hasCreatePermission } = require('../permissions/MatchPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
-const moment = require('moment-timezone')
 
 
 
@@ -46,18 +45,27 @@ async function addMatch( request ){
     const note = request.body.note
     const bumpable = request.body.bumpable
 
-    const start_date = moment.tz(date.concat(' ',start),"America/New_York")
-    const end_date = moment.tz(date.concat(' ',end),"America/New_York")
-    
-    console.log(start_date.unix())
-
-    if (! hasCreatePermission(new Date(start_date.format()),new Date(end_date.format()))){
-        throw new Error("Create permission denied")
-    }
+    const session_time_q = `SELECT
+                        c.id as court,
+                        UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                        UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_end
+                        FROM court c 
+                        JOIN club cl ON cl.id = c.club
+                        WHERE c.id = ?`
 
     const connection = await sqlconnector.getConnection()
     
     try{
+        let match_result = await sqlconnector.runQuery(connection,session_time_q,[date,start,date,end,court])
+
+        if( match_result.length !== 1 ) {
+            throw new Error("Failed to verify new session time")
+        }
+
+        if (! hasCreatePermission( match_result[0] )){
+            throw new Error("Create permission denied")
+        }
+
         await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
     }
     catch(error){
