@@ -154,6 +154,9 @@ async function changeSessionTime(id,cmd){
 
         activity_res[0]
         
+        //Use current time as the bases for checking permissions
+        let curr_time = new Date()
+
         //Extract times for the new and current activity
         let cur_activity = (({ utc_start, utc_end  }) => ({ utc_start, utc_end }))(activity_res[0]);
         let new_activity = (({ utc_new_start, utc_new_end  }) => ({ utc_start : utc_new_start, utc_end : utc_new_end }))(activity_res[0]);
@@ -168,16 +171,20 @@ async function changeSessionTime(id,cmd){
 
         //Check if start is changing and, if so, check permission
         if( cur_activity.utc_start !== new_activity.utc_start ){
-            if( ! hasChangeStartPermission(cur_activity) ){
+            if( ! hasChangeStartPermission(cur_activity, curr_time) ){
                 throw new Error("Change start permission denied")
             }
         }
 
         //Check if end is changing and, if so, check permission
         if( cur_activity.utc_end !== new_activity.utc_end ){
-            if( ! hasChangeEndPermission(cur_activity) ){
+            if( ! hasChangeEndPermission(cur_activity, curr_time) ){
                 throw new Error("Change start permission denied")
             }
+        }
+
+        if( ! hasCreatePermission(new_activity, curr_time) ){
+            throw new Error("New session time not permitted")
         }
 
         await sqlconnector.runQuery(connection,change_time_q,[id,new_start,new_end])
