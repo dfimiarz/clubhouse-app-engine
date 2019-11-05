@@ -56,13 +56,13 @@ async function addMatch( request ){
     const connection = await sqlconnector.getConnection()
     
     try{
-        let match_result = await sqlconnector.runQuery(connection,session_time_q,[date,start,date,end,court])
+        let activity_result = await sqlconnector.runQuery(connection,session_time_q,[date,start,date,end,court])
 
-        if( match_result.length !== 1 ) {
+        if( activity_result.length !== 1 ) {
             throw new Error("Failed to verify new session time")
         }
 
-        if (! hasCreatePermission( match_result[0] )){
+        if (! hasCreatePermission( activity_result[0] )){
             throw new Error("Create permission denied")
         }
 

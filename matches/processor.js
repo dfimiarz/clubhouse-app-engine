@@ -1,5 +1,5 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasEndPermission, hasRemovePermission, hasChangeEndPermission, hasChangeStartPermission } = require('../permissions/MatchPermissions')
+const { hasEndPermission, hasRemovePermission, hasChangeEndPermission, hasChangeStartPermission, hasCreatePermission } = require('../permissions/MatchPermissions')
 
 
 async function endSession(id,cmd){
@@ -135,7 +135,6 @@ async function changeSessionTime(id,cmd){
                  JOIN court c ON a.court = c.id
                  JOIN club cl ON cl.id = c.club
                  WHERE a.id = ? and MD5(a.updated) = ? and active = 1
-                 FOR UPDATE
                 `
     const change_time_q = `CALL changeActivityTime(?,?,?)`
             
@@ -146,35 +145,43 @@ async function changeSessionTime(id,cmd){
 
     try{
 
-        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
+        //Get current and new session times
+        const activity_res = await sqlconnector.runQuery(connection,activity_query,[new_start,new_end,id,cmd.hash])
 
-        try {
-            const activity_res = await sqlconnector.runQuery(connection,activity_query,[new_start,new_end,id,cmd.hash])
+        if (activity_res.length !== 1){
+            throw new Error("Session not found or modified")
+        } 
 
-            if (activity_res.length !== 1){
-                throw new Error("Session not found or modified")
-            } 
+        activity_res[0]
+        
+        //Extract times for the new and current activity
+        let cur_activity = (({ utc_start, utc_end  }) => ({ utc_start, utc_end }))(activity_res[0]);
+        let new_activity = (({ utc_new_start, utc_new_end  }) => ({ utc_start : utc_new_start, utc_end : utc_new_end }))(activity_res[0]);
 
-            let match = activity_res[0]
-            let now = new Date()
-
-            console.log( match )
-
-            await sqlconnector.runQuery(connection,change_time_q,[id,new_start,new_end])
-
-            await sqlconnector.runQuery(connection,"COMMIT",[])
+        //Check if start time and end times are the same
+        if( 
+            (cur_activity.utc_start === new_activity.utc_start) && 
+            (cur_activity.utc_end === new_activity.utc_end)
+        ){
+            throw new Error("New time and the original time are the same")
         }
-        catch( err ){
 
-            try{
-                await sqlconnector.runQuery(connection,"ROLLBACK",[])
+        //Check if start is changing and, if so, check permission
+        if( cur_activity.utc_start !== new_activity.utc_start ){
+            if( ! hasChangeStartPermission(cur_activity) ){
+                throw new Error("Change start permission denied")
             }
-            catch( err ){
-                throw err
-            }
-            
-            throw err
         }
+
+        //Check if end is changing and, if so, check permission
+        if( cur_activity.utc_end !== new_activity.utc_end ){
+            if( ! hasChangeEndPermission(cur_activity) ){
+                throw new Error("Change start permission denied")
+            }
+        }
+
+        await sqlconnector.runQuery(connection,change_time_q,[id,new_start,new_end])
+        
     }
     catch( err ){
         throw err
