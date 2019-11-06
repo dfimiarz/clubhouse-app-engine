@@ -130,13 +130,15 @@ async function changeSessionTime(id,cmd){
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_start,
-                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_end
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_end,
+                    a.court,
+                    a.date
                  FROM activity a
                  JOIN court c ON a.court = c.id
                  JOIN club cl ON cl.id = c.club
                  WHERE a.id = ? and MD5(a.updated) = ? and active = 1
                 `
-    const change_time_q = `CALL changeActivityTime(?,?,?)`
+    const change_time_q = `CALL changeActivityTime(?,?,?,?,?,?)`
             
     const connection = await sqlconnector.getConnection()
 
@@ -160,6 +162,9 @@ async function changeSessionTime(id,cmd){
         //Extract times for the new and current activity
         let cur_activity = (({ utc_start, utc_end  }) => ({ utc_start, utc_end }))(activity_res[0]);
         let new_activity = (({ utc_new_start, utc_new_end  }) => ({ utc_start : utc_new_start, utc_end : utc_new_end }))(activity_res[0]);
+
+        let court = activity_res[0].court
+        let date = activity_res[0].date
 
         //Check if start time and end times are the same
         if( 
@@ -187,7 +192,7 @@ async function changeSessionTime(id,cmd){
             throw new Error("New session time not permitted")
         }
 
-        await sqlconnector.runQuery(connection,change_time_q,[id,new_start,new_end])
+        await sqlconnector.runQuery(connection,change_time_q,[id,cmd.hash,court,date,new_start,new_end])
         
     }
     catch( err ){
