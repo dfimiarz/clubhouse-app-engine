@@ -63,13 +63,13 @@ async function addMatch( request ){
         }
 
         if (! hasCreatePermission( activity_result[0] )){
-            throw new Error("Create permission denied")
+            throw new Error("Create permission denied. Check time")
         }
 
         await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
     }
     catch(error){
-        throw new Error( error.sqlMessage )
+        throw error
     }
     finally{
         connection.release()

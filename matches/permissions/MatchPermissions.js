@@ -1,10 +1,14 @@
 
+var remove_grace_period = 10 * 60 * 1000;
+var create_grace_period = 10 * 60 * 1000;
+var update_grace_period = 10 * 60 * 1000;
+
 function hasRemovePermission( match, curr_time = new Date() ){
 
     var curr_time_ms = curr_time.getTime()
     var start_time_ms = match.utc_start * 1000
 
-    return (start_time_ms + ( 15 * 60 * 1000)) > curr_time_ms ? true: false
+    return (start_time_ms + remove_grace_period) > curr_time_ms ? true: false
 
 }
 
@@ -26,7 +30,7 @@ function hasChangeStartPermission( match, curr_time = new Date() ){
     var curr_time_ms = curr_time.getTime()
     var start_time_ms = match.utc_start * 1000
 
-    return start_time_ms >= curr_time_ms  ? true : false
+    return start_time_ms >= (curr_time_ms - update_grace_period) ? true : false
 
 }
 
@@ -35,7 +39,7 @@ function hasChangeEndPermission( match, curr_time = new Date() ){
     var curr_time_ms = curr_time.getTime()
     var end_time_ms = match.utc_end * 1000
 
-    return end_time_ms >= curr_time_ms  ? true : false
+    return end_time_ms >= ( curr_time_ms - update_grace_period )  ? true : false
 
 }
 
@@ -49,9 +53,7 @@ function hasCreatePermission(activityTime, curr_time = new Date() ){
     var curr_time_ms = curr_time.getTime()
     var start_time_ms = activityTime.utc_start * 1000
 
-    var time_offest_allowed = 10 * 60 * 1000
-
-    return start_time_ms > (curr_time_ms - time_offest_allowed) ? true : false
+    return start_time_ms >= (curr_time_ms - create_grace_period) ? true : false
 }
 
 

@@ -215,11 +215,11 @@ function checkChangeTimePermissions(orig_activity, new_activity){
     if( orig_activity.utc_start !== new_activity.utc_start ){
         
         if( ! hasChangeStartPermission(orig_activity, curr_time) ){
-            return "Change start permission denied"
+            return "Session start too far back in time"
         }
 
-        if( ! ( new_activity.utc_start * 1000 >= curr_time.getTime() )){
-            return "New start must be in the future"
+        if( ! ( new_activity.utc_start * 1000 >= (curr_time.getTime() - (10 * 60 * 1000)) )){
+            return "New start too far back in time"
         }
     }
 
@@ -227,11 +227,11 @@ function checkChangeTimePermissions(orig_activity, new_activity){
     if( orig_activity.utc_end !== new_activity.utc_end ){
 
         if( ! hasChangeEndPermission(orig_activity, curr_time) ){
-            return "Change end permission denied"
+            return "Session end too far back in time"
         }
 
-        if( ! ( new_activity.utc_end * 1000 > new_activity.utc_start * 1000 )){
-            return "New end must be after start"
+        if( ! ( new_activity.utc_end * 1000 >= (curr_time.getTime() - (10 * 60 * 1000)) )){
+            return "New end too far back in time"
         }
 
     }
