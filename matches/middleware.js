@@ -1,4 +1,4 @@
-const { hasRemovePermission, hasEndPermission, hasChangeEndPermission, hasChangeStartPermission } = require('../permissions/MatchPermissions')
+const { hasRemovePermission, hasEndPermission, hasChangeEndPermission, hasChangeStartPermission } = require('./permissions/MatchPermissions')
 const Validator = require('jsonschema').Validator
 const { getSchema, getSupportedCommands } = require('./command')
 

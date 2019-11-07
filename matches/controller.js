@@ -1,5 +1,5 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasCreatePermission } = require('../permissions/MatchPermissions')
+const { hasCreatePermission } = require('./permissions/MatchPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
 

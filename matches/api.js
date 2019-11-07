@@ -78,7 +78,6 @@ router.patch('/:id', validatePatchRequest,
 
      matchcontroller.processPatchCommand( req.params.id,res.locals.cmd)
      .then((results) => {
-          console.log(results)
           res.status(204).send()
      }).catch((err) => {
          
