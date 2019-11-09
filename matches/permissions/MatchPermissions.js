@@ -3,6 +3,9 @@ var remove_grace_period = 10 * 60 * 1000;
 var create_grace_period = 10 * 60 * 1000;
 var update_grace_period = 10 * 60 * 1000;
 
+//Session must be last at least this many ms before court change is allowed
+var change_court_min_dur = 10 * 60 * 1000;
+
 function hasRemovePermission( match, curr_time = new Date() ){
 
     var curr_time_ms = curr_time.getTime()
@@ -56,6 +59,22 @@ function hasCreatePermission(activityTime, curr_time = new Date() ){
     return start_time_ms >= (curr_time_ms - create_grace_period) ? true : false
 }
 
+/**
+ * 
+ * @param { Object } activityTime Should contain utc_start and utc_end in seconds 
+ * @param { Date } curr_time Optional current time
+ * 
+ * Checks if a court can be changed. 
+ */
+function hasChangeCourtPermission(activityTime, curr_time = new Date()){
+
+    var curr_time_ms = curr_time.getTime()
+    var start_time_ms = activityTime.utc_start * 1000
+
+    return start_time_ms >= (curr_time_ms - change_court_min_dur) ? true : false
+
+}
+
 
 
 
@@ -64,5 +83,6 @@ module.exports = {
     hasEndPermission,
     hasCreatePermission,
     hasChangeEndPermission,
-    hasChangeStartPermission
+    hasChangeStartPermission,
+    hasChangeCourtPermission
 }
