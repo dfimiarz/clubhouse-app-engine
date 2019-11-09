@@ -1,5 +1,5 @@
 const sqlconnector = require('../db/SqlConnector')
-const { hasEndPermission, hasRemovePermission, checkChangeTimePermissions } = require('./permissions/MatchPermissions')
+const { hasEndPermission, hasRemovePermission, checkChangeTimePermissions, hasChangeCourtPermission } = require('./permissions/MatchPermissions')
 
 
 async function endSession(id,cmd){
@@ -199,7 +199,84 @@ async function changeSessionTime(id,cmd){
 
 
 async function changeCourt(id,cmd){
+    const activity_query = `SELECT
+                    a.id,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    a.court,
+                    a.date
+                    FROM activity a
+                    JOIN court c ON a.court = c.id
+                    JOIN club cl ON cl.id = c.club
+                    WHERE a.id = ? and MD5(a.updated) = ? and active = 1
+                    FOR UPDATE
+                    `
+    const full_update_query = `UPDATE activity SET court = ? 
+                               WHERE id = ? and MD5(updated) = ?
+                              `
 
+    const connection = await sqlconnector.getConnection()
+
+    const new_court = cmd.court
+    const hash = cmd.hash
+
+    try{
+
+        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
+
+        try{
+            //Get current and new session times
+            const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,cmd.hash])
+
+            if (activity_res.length !== 1){
+                throw new Error("Session not found or modified")
+            } 
+            
+            //Use current time as the bases for checking permissions
+            let curr_time = new Date()
+
+            //Extract start,end and court for current activity
+            let curr_activity = (({ utc_start, utc_end, court  }) => ({ utc_start, utc_end,court }))(activity_res[0]);
+
+            console.log(curr_activity,curr_time.getTime())
+
+            if( ! hasChangeCourtPermission(curr_activity,curr_time)){
+                throw new Error("Permission to change court denied")
+            }
+        
+            if( curr_activity.court === new_court ){
+                throw new Error("Original court number and new are the same")
+            }
+
+            if( (curr_activity.utc_start * 1000) > curr_time.getTime() ){
+                //Session is in the future so change the court right away
+                console.log("Running full update")
+                await sqlconnector.runQuery(connection,full_update_query,[new_court,id,hash])
+            }
+            else{
+
+            }
+
+            await sqlconnector.runQuery(connection,"COMMIT",[])
+        }
+        catch( err ){
+
+            try{
+                await sqlconnector.runQuery(connection,"ROLLBACK",[])
+            }
+            catch( err ){
+                throw err
+            }
+            
+            throw err
+        }
+    }
+    catch( err ){
+        throw err
+    }
+    finally{
+        connection.release()
+    }
 
 } 
 
