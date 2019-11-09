@@ -26,8 +26,6 @@ async function endSession(id,cmd){
         try {
             const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,cmd.hash])
 
-            //console.log(activity_res)
-
             if (activity_res.length !== 1){
                 throw new Error("Session not found or modified")
             } 

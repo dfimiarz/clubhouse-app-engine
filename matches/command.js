@@ -56,6 +56,24 @@ commands['CHANGE_TIME'] = {
                                 processor: 'changeSessionTime' 
                             }
 
+commands['CHANGE_COURT'] = {
+                                vschema: {
+                                    "id":"CHANGE_COURT_SCHEMA",
+                                    "type": "object",
+                                    "properties":{
+                                        "hash":{
+                                            "type": "string",
+                                            "pattern": /[a-fA-F0-9]{32}/
+                                        },
+                                        "court":{
+                                            "type": "integer"  
+                                        }
+                                    },
+                                    "required": ["hash","court"]
+                                },
+                                processor: 'changeCourt' 
+                            }
+
 function hasCommand(cmd_name) {
     return Object.keys(commands).includes(cmd_name) ? true : false
 }
