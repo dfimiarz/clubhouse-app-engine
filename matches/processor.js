@@ -203,6 +203,8 @@ async function changeCourt(id,cmd){
                     a.id,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    a.start,
+                    a.end,
                     a.court,
                     a.date
                     FROM activity a
@@ -211,9 +213,8 @@ async function changeCourt(id,cmd){
                     WHERE a.id = ? and MD5(a.updated) = ? and active = 1
                     FOR UPDATE
                     `
-    const full_update_query = `UPDATE activity SET court = ? 
-                               WHERE id = ? and MD5(updated) = ?
-                              `
+    //IN _id INT, IN _hash VARCHAR(32),IN _date DATE,IN _start TIME,IN _end TIME,IN _new_court INT
+    const update_court_query = `call changeActivityCourt(?,?,?,?,?,?)`
 
     const connection = await sqlconnector.getConnection()
 
@@ -236,22 +237,19 @@ async function changeCourt(id,cmd){
             let curr_time = new Date()
 
             //Extract start,end and court for current activity
-            let curr_activity = (({ utc_start, utc_end, court  }) => ({ utc_start, utc_end,court }))(activity_res[0]);
+            let activity = (({ utc_start, utc_end, court, date, start,end  }) => ({ utc_start, utc_end,court, date, start, end }))(activity_res[0]);
 
-            console.log(curr_activity,curr_time.getTime())
-
-            if( ! hasChangeCourtPermission(curr_activity,curr_time)){
+            if( ! hasChangeCourtPermission(activity,curr_time)){
                 throw new Error("Permission to change court denied")
             }
         
-            if( curr_activity.court === new_court ){
+            if( activity.court === new_court ){
                 throw new Error("Original court number and new are the same")
             }
 
-            if( (curr_activity.utc_start * 1000) > curr_time.getTime() ){
+            if( (activity.utc_start * 1000) > curr_time.getTime() ){
                 //Session is in the future so change the court right away
-                console.log("Running full update")
-                await sqlconnector.runQuery(connection,full_update_query,[new_court,id,hash])
+                await sqlconnector.runQuery(connection,update_court_query,[id,hash,activity.date,activity.start,activity.end,new_court])
             }
             else{
 
