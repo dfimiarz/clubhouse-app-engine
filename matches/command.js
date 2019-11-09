@@ -5,15 +5,12 @@ commands['END_SESSION'] = {
                                 "id":"END_SESSION_SCHEMA",
                                 "type": "object",
                                 "properties":{
-                                    "end_time": {
-                                        type: "integer"
-                                    },
                                     "hash":{
                                         "type": "string",
                                         "pattern": /[a-fA-F0-9]{32}/
                                     }
                                 },
-                                "required": ["end_time","hash"]
+                                "required": ["hash"]
                             },
                             processor: 'endSession' 
                         }

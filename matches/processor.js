@@ -238,36 +238,14 @@ function checkChangeTimePermissions(orig_activity, new_activity){
 
 }
 
+async function changeCourt(id,cmd){
+
+
+} 
+
 module.exports = {
     endSession,
     removeSession,
-    changeSessionTime
+    changeSessionTime,
+    changeCourt,
 }
-
-/* Psuedocode for updating session time
-start transaction
-
-get session for update
-
-check permissions
-
----- stored procedure ----
-change_session_time(session_id,start,end){
-
-	get_lock('schedule_lock')
-
-	
-	check for overlap
-
-	change time
-		
-
-
-	release_lock('schedule_lock')
-
-
-}
------ end stored procedure
-
-commit or rollback
- */
