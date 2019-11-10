@@ -199,14 +199,20 @@ async function changeSessionTime(id,cmd){
 
 
 async function changeCourt(id,cmd){
+
+
     const activity_query = `SELECT
                     a.id,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    TIME(convert_tz(NOW(),@@GLOBAL.time_zone, cl.time_zone )) as club_time,
+                    UNIX_TIMESTAMP(NOW()) as utc_club_time,
                     a.start,
                     a.end,
                     a.court,
-                    a.date
+                    a.date,
+                    a.bumpable,
+                    a.notes
                     FROM activity a
                     JOIN court c ON a.court = c.id
                     JOIN club cl ON cl.id = c.club
@@ -215,6 +221,9 @@ async function changeCourt(id,cmd){
                     `
     //IN _id INT, IN _hash VARCHAR(32),IN _date DATE,IN _start TIME,IN _end TIME,IN _new_court INT
     const update_court_query = `call changeActivityCourt(?,?,?,?,?,?)`
+    
+    //IN _id INT, IN _hash VARCHAR(32),IN _date DATE,IN _start TIME, IN _end TIME, IN bumpable TINYINT, IN _notes VARCHAR(256),IN _split_time TIME,IN _new_court INT
+    const split_move_query = `call splitAndMoveActivity(?,?,?,?,?,?,?,?,?)`
 
     const connection = await sqlconnector.getConnection()
 
@@ -232,27 +241,29 @@ async function changeCourt(id,cmd){
             if (activity_res.length !== 1){
                 throw new Error("Session not found or modified")
             } 
-            
-            //Use current time as the bases for checking permissions
-            let curr_time = new Date()
 
             //Extract start,end and court for current activity
-            let activity = (({ utc_start, utc_end, court, date, start,end  }) => ({ utc_start, utc_end,court, date, start, end }))(activity_res[0]);
+            let activity = (({ utc_start, utc_end, court, date, start, end, club_time, utc_club_time, bumpable, notes  }) => ({ utc_start, utc_end,court, date, start, end, club_time, utc_club_time, bumpable,notes }))(activity_res[0]);
+
+            //console.log(activity,new Date().getTime(),new Date(activity.utc_club_time * 1000).getTime())
+
+            let curr_time = new Date(activity.utc_club_time * 1000)
 
             if( ! hasChangeCourtPermission(activity,curr_time)){
                 throw new Error("Permission to change court denied")
             }
         
             if( activity.court === new_court ){
-                throw new Error("Original court number and new are the same")
+                throw new Error("Court has not changed")
             }
 
-            if( (activity.utc_start * 1000) > curr_time.getTime() ){
+            if( activity.utc_start  > activity.utc_club_time ){
                 //Session is in the future so change the court right away
                 await sqlconnector.runQuery(connection,update_court_query,[id,hash,activity.date,activity.start,activity.end,new_court])
             }
             else{
-
+                //Current session. Split and move
+                await sqlconnector.runQuery(connection,split_move_query,[id,hash,activity.date,activity.start,activity.end,activity.bumpable,activity.notes,activity.club_time,new_court])
             }
 
             await sqlconnector.runQuery(connection,"COMMIT",[])

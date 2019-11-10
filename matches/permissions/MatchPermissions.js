@@ -48,10 +48,9 @@ function hasChangeStartPermission( match, curr_time = new Date() ){
 
 /**
  * Check if a session end can change.
- * Permission granted if end_time >= (now - grace_period)
- * See value for update_grace_period for exact value
- * Grace period of 10 minutes means a session ending at 9:00 am 
- * can have it's end time changed up to 9:10 am.
+ * Permission granted if end_time > now
+ * Session ending at 9:00 am 
+ * can have it's end time changed up to 8:59 am.
  *  
  * @param { Object } activityTime Should contain utc_start and utc_end in seconds 
  * @param { Date } curr_time Optional current time 
@@ -61,7 +60,7 @@ function hasChangeEndPermission( activityTime, curr_time = new Date() ){
     var curr_time_ms = curr_time.getTime()
     var end_time_ms = activityTime.utc_end * 1000
 
-    return end_time_ms >= ( curr_time_ms - update_grace_period )  ? true : false
+    return end_time_ms > curr_time_ms   ? true : false
 
 }
 
@@ -129,8 +128,8 @@ function checkChangeTimePermissions(orig_activity, new_activity){
            return "Session end too far back in time"
        }
 
-       if( ! ( new_activity.utc_end * 1000 >= (curr_time.getTime() - (10 * 60 * 1000)) )){
-           return "New end too far back in time"
+       if( ! ( new_activity.utc_end * 1000 > curr_time.getTime() ) ){
+           return "New end must be in future"
        }
 
    }
