@@ -18,6 +18,7 @@ async function endSession(id,cmd){
                     FOR UPDATE
                 `
 
+    //Time will be converted from UTC (server) to club time zone
     const update_activity_q = `UPDATE activity SET end = TIME(convert_tz(from_unixtime(?),@@GLOBAL.time_zone,? )) where id = ?`
 
     try{
