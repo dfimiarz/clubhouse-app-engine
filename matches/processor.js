@@ -32,7 +32,9 @@ async function endSession(id,cmd){
             } 
 
             let match = activity_res[0]
+            //Get current time but disregard seconds since we want sessions to end on even minutes
             let now = new Date()
+            now.setSeconds(0)
 
             if( ! hasEndPermission(match,now)){
                 throw new Error("Permission denied")
