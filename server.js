@@ -3,7 +3,10 @@
 const express = require('express')
 const createError = require('http-errors')
 const cors = require('cors')
+const compression = require('compression')
 const app = express()
+
+
 require('dotenv').config()
 
 app.set('trust proxy', true)
@@ -13,6 +16,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 }
 
+app.use(compression())
 app.use(cors(corsOptions))
 
 
