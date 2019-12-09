@@ -1,0 +1,13 @@
+DATABASE SETUP:
+
+The system expects the mysql database running with default time zone set to UTC
+
+Unix
+Setting TZ system variable does the trick on linux. See docker documentation for setting TZ sys var on containers
+
+Windows
+Windows machines do not have timezone info imported into mysql database. Those must be added before changing server time zone. 
+More info along with zone files can be found at: https://dev.mysql.com/doc/refman/5.7/en/time-zone-support.html
+The downloaded file can be easily imported with workbench tool. Make sure you select the "mysql" database to make sure that zone files are imported to the correct location.
+When setting up a database on windows system UTC timezone can be set by setting default-time-zone in the options file. 
+This can be done directly in mysql workbench if needed. Look for "zone" in the options search box.
