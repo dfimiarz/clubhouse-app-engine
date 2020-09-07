@@ -5,6 +5,7 @@ const createError = require('http-errors')
 const cors = require('cors')
 const compression = require('compression')
 const app = express()
+const RESTError = require('./utils/RESTError')
 
 
 require('dotenv').config()
@@ -30,10 +31,10 @@ app.get('/', (req,res) => {
     )
 })
 
-app.use('/members', require('./members/api'))
 app.use('/courts', require('./courts/api'))
 app.use('/matches', require('./matches/api'))
-
+app.use('/persons', require('./persons/api'))
+app.use('/auth', require('./auth/api'))
 
 app.use( (req,res,next) => {
     next(createError(404))
@@ -41,8 +42,14 @@ app.use( (req,res,next) => {
 
 app.use( (err,req,res,next) => {
 
-    res.status(err.status || 500 )
-    .json( err.message || 'Something went wrong' )
+    if( err instanceof RESTError ){
+        res.status( err.status )
+        .json( err.payload )
+    } else {
+        res.status(err.status || 500 )
+        .json( err.message || 'Something went wrong' )
+    }
+
 })
 
 

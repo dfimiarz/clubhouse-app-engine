@@ -11,8 +11,8 @@ const config = {
     connectTimeout: 10000,
     acquireTimeout: 10000,
     waitForConnections: true,
-    queueLimit: 0
-
+    queueLimit: 0,
+    timezone: 'Z'
 
 }
 

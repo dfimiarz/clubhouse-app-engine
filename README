@@ -11,3 +11,6 @@ More info along with zone files can be found at: https://dev.mysql.com/doc/refma
 The downloaded file can be easily imported with workbench tool. Make sure you select the "mysql" database to make sure that zone files are imported to the correct location.
 When setting up a database on windows system UTC timezone can be set by setting default-time-zone in the options file. 
 This can be done directly in mysql workbench if needed. Look for "zone" in the options search box.
+
+Connect to Database Running in a container
+docker exec -it name_of_container bash
