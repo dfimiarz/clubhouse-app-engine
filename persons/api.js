@@ -64,6 +64,19 @@ router.get('/guests', (req, res, next) => {
 
 })
 
+router.get('/guests/inactive', (req, res, next) => {
+
+     controller.getInactiveGuests()
+          .then((guests) => {
+               res.json(guests)
+          })
+          .catch((err) => {
+               next(err)
+          })
+
+
+})
+
 router.post('/guests', [
      check('email').notEmpty().withMessage("Field cannot be empty").isEmail().withMessage("Invalid E-mail Address"),
      check('firstname').notEmpty().withMessage("Field cannot be empty"),

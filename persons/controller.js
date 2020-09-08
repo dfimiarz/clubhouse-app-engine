@@ -118,10 +118,28 @@ async function getPersons() {
     }
 }
 
+async function getInactiveGuests() {
+
+    const connection = await sqlconnector.getConnection()
+    const query = `SELECT * from inactive_guests`
+    try {
+
+        const guests = await sqlconnector.runQuery(connection, query)
+        return guests
+    }
+    catch (error) {
+        throw error
+    }
+    finally {
+        connection.release()
+    }
+}
+
 module.exports = {
     getMembers: getMembers,
     getGuests: getGuests,
     addGuest: addGuest,
     getEligiblePersons,
-    getPersons
+    getPersons,
+    getInactiveGuests
 }
