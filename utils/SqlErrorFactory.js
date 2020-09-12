@@ -6,6 +6,12 @@ const sql_errors = {
             'code': 422,
             'msg' : "Person already exists"
         }
+    },
+    'ACTIVATE_GUESTS' :{
+        1062: {
+            'code': 422,
+            'msg' : "Guest(s) already activated"
+        }
     }
 }
 

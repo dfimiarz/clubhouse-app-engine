@@ -35,6 +35,7 @@ app.use('/courts', require('./courts/api'))
 app.use('/matches', require('./matches/api'))
 app.use('/persons', require('./persons/api'))
 app.use('/auth', require('./auth/api'))
+app.use('/guest_activations', require('./guest_activations/api'))
 
 app.use( (req,res,next) => {
     next(createError(404))
