@@ -33,7 +33,28 @@ async function getEligiblePersons() {
     const connection = await sqlconnector.getConnection()
     const query = `SELECT * FROM active_members
                    UNION
-                   SELECT * FROM active_guests;`
+                   SELECT * FROM active_guests`
+    try {
+
+        const persons = await sqlconnector.runQuery(connection, query)
+        return persons
+    }
+    catch (error) {
+        throw error
+    }
+    finally {
+        connection.release()
+    }
+
+}
+
+/**
+ * Returns a list of club members elgible to play
+ */
+async function getActiveMembers() {
+
+    const connection = await sqlconnector.getConnection()
+    const query = `SELECT * FROM active_members`
     try {
 
         const persons = await sqlconnector.runQuery(connection, query)
@@ -118,10 +139,33 @@ async function getPersons() {
     }
 }
 
+/**
+ * Return list of guests inelgible to play
+ */
 async function getInactiveGuests() {
 
     const connection = await sqlconnector.getConnection()
     const query = `SELECT * from inactive_guests`
+    try {
+
+        const guests = await sqlconnector.runQuery(connection, query)
+        return guests
+    }
+    catch (error) {
+        throw error
+    }
+    finally {
+        connection.release()
+    }
+}
+
+/**
+ * Return list of guests elgible to play
+ */
+async function getActiveGuests() {
+
+    const connection = await sqlconnector.getConnection()
+    const query = `SELECT * FROM active_guests`
     try {
 
         const guests = await sqlconnector.runQuery(connection, query)
@@ -141,5 +185,7 @@ module.exports = {
     addGuest: addGuest,
     getEligiblePersons,
     getPersons,
-    getInactiveGuests
+    getInactiveGuests,
+    getActiveGuests,
+    getActiveMembers
 }

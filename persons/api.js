@@ -51,6 +51,19 @@ router.get('/members', (req, res, next) => {
 
 })
 
+router.get('/members/active', (req, res, next) => {
+
+     controller.getActiveMembers()
+          .then((guests) => {
+               res.json(guests)
+          })
+          .catch((err) => {
+               next(err)
+          })
+
+
+})
+
 router.get('/guests', (req, res, next) => {
 
      controller.getGuests()
@@ -67,6 +80,19 @@ router.get('/guests', (req, res, next) => {
 router.get('/guests/inactive', (req, res, next) => {
 
      controller.getInactiveGuests()
+          .then((guests) => {
+               res.json(guests)
+          })
+          .catch((err) => {
+               next(err)
+          })
+
+
+})
+
+router.get('/guests/active', (req, res, next) => {
+
+     controller.getActiveGuests()
           .then((guests) => {
                res.json(guests)
           })
