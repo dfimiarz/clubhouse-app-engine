@@ -37,5 +37,18 @@ router.post('/bulk', [
 
 })
 
+router.get('/current',(req,res, next) => {
+
+    controller.getCurrentActivations()
+        .then((result) => {
+            res.json(result);
+        })
+        .catch(err => {
+            next(err instanceof RESTError ? err : new RESTError(500, "Operation failed"))
+        })
+
+
+});
+
 module.exports = router
 
