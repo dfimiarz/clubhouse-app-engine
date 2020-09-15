@@ -14,3 +14,6 @@ This can be done directly in mysql workbench if needed. Look for "zone" in the o
 
 Connect to Database Running in a container
 docker exec -it name_of_container bash
+
+Env Variables
+Development varible are stored in .env file for development and Dockerfile for deployment in docker. Make sure that correct files are set when running the app.

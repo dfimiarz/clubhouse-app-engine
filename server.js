@@ -7,13 +7,10 @@ const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
 
-
-require('dotenv').config()
-
 app.set('trust proxy', true)
 
 const corsOptions = {
-    origin: "*", // process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL,
     optionsSuccessStatus: 200
 }
 
