@@ -7,6 +7,8 @@ const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
 
+require('dotenv').config();
+
 app.set('trust proxy', true)
 
 const corsOptions = {
