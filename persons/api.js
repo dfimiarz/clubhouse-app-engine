@@ -64,6 +64,16 @@ router.get('/members/active', (req, res, next) => {
 
 })
 
+router.get('/members/managers',(req,res,next) => {
+     controller.getClubManagers()
+          .then((managers) => {
+               res.json(managers)
+          })
+          .catch((err) => {
+               next(err)
+          })
+})
+
 router.get('/guests', (req, res, next) => {
 
      controller.getGuests()

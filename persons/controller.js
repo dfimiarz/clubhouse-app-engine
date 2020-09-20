@@ -69,6 +69,28 @@ async function getActiveMembers() {
 
 }
 
+async function getClubManagers() {
+    const connection = await sqlconnector.getConnection()
+    const query = 
+    `select p.id,p.firstname,p.lastname from person p join member m on m.person_id = p.id join club c on p.club = c.id 
+    where 
+    role > 2000 and 
+    curtime() >= getDbTime(m.valid_from,c.time_zone) and
+    curtime() < getDbTime(m.valid_until,c.time_zone) and club = ? order by role,lastname
+    `
+    try {
+
+        const managers = await sqlconnector.runQuery(connection, query,club_id)
+        return managers;
+    }
+    catch (error) {
+        throw error
+    }
+    finally {
+        connection.release()
+    }
+}
+
 
 /**
  * 
@@ -187,5 +209,6 @@ module.exports = {
     getPersons,
     getInactiveGuests,
     getActiveGuests,
-    getActiveMembers
+    getActiveMembers,
+    getClubManagers
 }
