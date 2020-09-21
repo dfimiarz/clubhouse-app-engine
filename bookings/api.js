@@ -95,21 +95,34 @@ const generateSendSseCallback = function(res){
 }
 
 
+router.get('/test',(req,res) => {
+     res.writeHead(200,{
+         'Content-Type': 'text/event-stream',
+         'Cache-Control': 'no-cache',
+         'Connection': 'keep-alive',
+         'X-Accel-Buffering': 'no'
+    })
+    
+    res.write("Test")
+ })
+
 router.get('/watch',(req,res) => {
 
-     res.set({
+     res.writeHead(200,{
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
           'X-Accel-Buffering': 'no'
      })
      
+     res.write("Test")
+
      try{
-          const sendFunc = generateSendSseCallback(res)
-          MatchEventEmitter.on('matchadded', sendFunc )
+          // const sendFunc = generateSendSseCallback(res)
+          // MatchEventEmitter.on('matchadded', sendFunc )
           req.on('close', () => {
                console.log("closed")
-               MatchEventEmitter.removeListener('matchadded',generateSendSseCallback)
+               // MatchEventEmitter.removeListener('matchadded',sendFunc)
           })
      }
      catch( err ){

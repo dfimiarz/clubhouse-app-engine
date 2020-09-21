@@ -31,7 +31,7 @@ app.get('/', (req,res) => {
 })
 
 app.use('/courts', require('./courts/api'))
-app.use('/matches', require('./matches/api'))
+app.use('/bookings', require('./bookings/api'))
 app.use('/persons', require('./persons/api'))
 app.use('/auth', require('./auth/api'))
 app.use('/guest_activations', require('./guest_activations/api'))
