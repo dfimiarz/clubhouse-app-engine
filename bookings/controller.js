@@ -88,6 +88,7 @@ async function getMatchDetails(id){
                     JSON_OBJECT(
                             'id', a.id, 
                             'updated' , MD5(a.updated), 
+                            'type', at.desc ,
                             'date' , a.date  ,
                             'start', a.start, 
                             'end' , a.end , 
@@ -110,8 +111,8 @@ async function getMatchDetails(id){
                 ON a.id = p.activity
                 JOIN court c ON a.court = c.id
                 JOIN club cl ON cl.id = c.club
-                WHERE a.id = ?
-                and active = 1`;
+                JOIN activity_type at on at.id = a.type
+                WHERE a.id = ?`;
 
     const connection = await sqlconnector.getConnection()
 
