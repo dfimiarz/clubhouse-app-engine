@@ -6,10 +6,13 @@ const cors = require('cors')
 const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
+const { checkUserAuth,checkGeoAuth } = require('./middleware/clientauth')
 
 require('dotenv').config();
 
 app.set('trust proxy', true)
+
+console.log("Permitted client", process.env.CLIENT_URL);
 
 const corsOptions = {
     origin: process.env.CLIENT_URL,
@@ -19,6 +22,7 @@ const corsOptions = {
 app.use(compression())
 app.use(cors(corsOptions))
 
+app.use(checkGeoAuth,checkUserAuth)
 
 app.get('/', (req,res) => {
 
@@ -28,6 +32,9 @@ app.get('/', (req,res) => {
             version: '1.0'
         }
     )
+})
+app.use('/alive',(_req,res,_next) => {
+    res.status(200).json({ status: "ok"})
 })
 
 app.use('/courts', require('./courts/api'))

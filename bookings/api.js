@@ -5,6 +5,8 @@ const matchcontroller = require('./controller')
 const { PatchCommandProcessor } = require('./controller')
 const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
+const {authGuard} = require('../middleware/clientauth')
+
 
 
 
@@ -16,7 +18,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all matches for day
  */
-router.get('/',(req,res,next) => {
+router.get('/',authGuard,(req,res,next) => {
 
 
      const date = req.query.date ? req.query.date : null
@@ -31,7 +33,7 @@ router.get('/',(req,res,next) => {
 
 })
 
-router.post('/',(req,res,next) =>{
+router.post('/',authGuard,(req,res,next) =>{
 
     matchcontroller.addMatch(req)
      .then((courts)=>{
@@ -48,7 +50,7 @@ router.post('/',(req,res,next) =>{
 
 })
 
-router.get('/:id',(req,res,next) => {
+router.get('/:id',authGuard,(req,res,next) => {
      
           const id = req.params.id ? req.params.id : null
 
@@ -73,7 +75,7 @@ router.get('/:id',(req,res,next) => {
      }
 )
 
-router.patch('/:id', validatePatchRequest,
+router.patch('/:id',authGuard, validatePatchRequest,
      (req,res,next) => {
 
      matchcontroller.processPatchCommand( req.params.id,res.locals.cmd)
@@ -95,7 +97,7 @@ const generateSendSseCallback = function(res){
 }
 
 
-router.get('/test',(req,res) => {
+router.get('/test',authGuard,(req,res) => {
      res.writeHead(200,{
          'Content-Type': 'text/event-stream',
          'Cache-Control': 'no-cache',
@@ -106,7 +108,7 @@ router.get('/test',(req,res) => {
     res.write("Test")
  })
 
-router.get('/watch',(req,res) => {
+router.get('/watch',authGuard,(req,res) => {
 
      res.writeHead(200,{
           'Content-Type': 'text/event-stream',

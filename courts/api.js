@@ -2,6 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { body, validationResult } = require('express-validator')
 const courtcontroller = require('./controller')
+const {authGuard} = require('../middleware/clientauth')
 
 const router = express.Router();
 
@@ -11,7 +12,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all courts
  */
-router.get('/',(req,res,next) => {
+router.get('/',authGuard,(req,res,next) => {
 
      courtcontroller.getCourts()
      .then((courts)=>{

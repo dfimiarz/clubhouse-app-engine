@@ -3,7 +3,8 @@ const { hasCreatePermission } = require('./permissions/MatchPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
 
-
+//Set default booking type to match. Sync with DB values if needed
+const DEFAULT_BOOKING_TYPE = 1000;
 
 
 async function getMatchesForDate(date){
@@ -12,12 +13,12 @@ async function getMatchesForDate(date){
         return []
 
     const connection = await sqlconnector.getConnection()
-    const query = `call getActivitiesForDate(?) `
+    const query = `call getBookingsForDate(?) `
     try{
 
-        let matches_array = await sqlconnector.runQuery(connection,query,[date])
-        
-        return matches_array[0].map( matchinfo => matchinfo.match )
+        let bookings_array = await sqlconnector.runQuery(connection,query,[date])
+
+        return bookings_array[0].map( bookingobj => bookingobj.booking )
     }
     catch(error){
         throw new Error(error.sqlMessage)
@@ -44,6 +45,7 @@ async function addMatch( request ){
     const end = request.body.end
     const note = request.body.note
     const bumpable = request.body.bumpable
+    const bookingtype = request.body.bookingtype || DEFAULT_BOOKING_TYPE
 
     const session_time_q = `SELECT
                         c.id as court,
@@ -66,7 +68,7 @@ async function addMatch( request ){
             throw new Error("Create permission denied. Check time")
         }
 
-        await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?)`,[court,date,start,end,bumpable,note,JSON.stringify(players)])
+        await sqlconnector.runQuery(connection,`call addMatch(?,?,?,?,?,?,?,?)`,[bookingtype,court,date,start,end,bumpable,note,JSON.stringify(players)])
     }
     catch(error){
         throw error

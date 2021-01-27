@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const { check, validationResult } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
+const { authGuard } = require('../middleware/clientauth')
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all courts
  */
-router.post('/bulk', [
+router.post('/bulk',authGuard, [
     check('memberhost').notEmpty().withMessage("Member host cannot be empty").isInt().withMessage("Member host id must be an integer"),
     check('guests').notEmpty().withMessage("Field cannot be empty").isArray().withMessage("Expected array of guests"),
     check('guests.*').isInt().withMessage("All guests values should be integers")
@@ -37,7 +38,7 @@ router.post('/bulk', [
 
 })
 
-router.get('/current',(req,res, next) => {
+router.get('/current',authGuard,(req,res, next) => {
 
     controller.getCurrentActivations()
         .then((result) => {

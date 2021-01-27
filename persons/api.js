@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 const { check, validationResult } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
+const {authGuard} = require('../middleware/clientauth')
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all nestboxes
  */
-router.get('/', (req, res, next) => {
+router.get('/',authGuard, (req, res, next) => {
 
      controller.getPersons()
           .then((persons) => {
@@ -25,7 +26,7 @@ router.get('/', (req, res, next) => {
 
 })
 
-router.get('/eligible', (req, res, next) => {
+router.get('/eligible',authGuard, (req, res, next) => {
 
      controller.getEligiblePersons()
           .then((persons) => {
@@ -38,7 +39,7 @@ router.get('/eligible', (req, res, next) => {
 
 })
 
-router.get('/members', (req, res, next) => {
+router.get('/members',authGuard, (req, res, next) => {
 
      controller.getMembers()
           .then((members) => {
@@ -51,7 +52,7 @@ router.get('/members', (req, res, next) => {
 
 })
 
-router.get('/members/active', (req, res, next) => {
+router.get('/members/active',authGuard, (req, res, next) => {
 
      controller.getActiveMembers()
           .then((guests) => {
@@ -64,7 +65,7 @@ router.get('/members/active', (req, res, next) => {
 
 })
 
-router.get('/members/managers',(req,res,next) => {
+router.get('/members/managers',authGuard,(req,res,next) => {
      controller.getClubManagers()
           .then((managers) => {
                res.json(managers)
@@ -74,7 +75,7 @@ router.get('/members/managers',(req,res,next) => {
           })
 })
 
-router.get('/guests', (req, res, next) => {
+router.get('/guests',authGuard, (req, res, next) => {
 
      controller.getGuests()
           .then((guests) => {
@@ -87,7 +88,7 @@ router.get('/guests', (req, res, next) => {
 
 })
 
-router.get('/guests/inactive', (req, res, next) => {
+router.get('/guests/inactive',authGuard, (req, res, next) => {
 
      controller.getInactiveGuests()
           .then((guests) => {
@@ -100,7 +101,7 @@ router.get('/guests/inactive', (req, res, next) => {
 
 })
 
-router.get('/guests/active', (req, res, next) => {
+router.get('/guests/active',authGuard, (req, res, next) => {
 
      controller.getActiveGuests()
           .then((guests) => {
@@ -115,9 +116,9 @@ router.get('/guests/active', (req, res, next) => {
 
 router.post('/guests', [
      check('email').notEmpty().withMessage("Field cannot be empty").isEmail().withMessage("Invalid E-mail Address"),
-     check('firstname').notEmpty().withMessage("Field cannot be empty"),
-     check('lastname').notEmpty().withMessage("Field cannot be empty"),
-     check('phone').notEmpty().withMessage("Field cannot be empty")
+     check('firstname').notEmpty().withMessage("Field cannot be empty").isString(),
+     check('lastname').notEmpty().withMessage("Field cannot be empty").isString(),
+     check('phone').notEmpty().withMessage("Field cannot be empty").isString()
 ], (req, res, next) => {
 
      const errors = validationResult(req);
