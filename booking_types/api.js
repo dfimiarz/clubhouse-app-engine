@@ -3,7 +3,6 @@ const bodyParser = require('body-parser')
 const { check, validationResult } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
-const { authGuard } = require('../middleware/clientauth')
 
 const router = express.Router();
 
@@ -13,7 +12,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all nestboxes
  */
-router.get('/',authGuard, (req, res, next) => {
+router.get('/',(req, res, next) => {
 
     controller.getBookingTypes()
         .then((booking_types) => {
