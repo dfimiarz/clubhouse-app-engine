@@ -16,7 +16,9 @@ console.log("Permitted client", process.env.CLIENT_URL);
 
 const corsOptions = {
     origin: process.env.CLIENT_URL,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    credentials: true,
+    exposedHeaders: ['Etag']
 }
 
 app.use(compression())
