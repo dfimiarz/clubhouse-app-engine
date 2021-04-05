@@ -7,7 +7,7 @@ const config = {
     user: process.env.SQL_USER,
     password: process.env.SQL_PASSWORD,
     database: process.env.SQL_DATABASE,
-    port: process.env.SQL_PORT | 3306,
+    port: process.env.SQL_PORT || 3306,
     connectTimeout: 10000,
     acquireTimeout: 10000,
     waitForConnections: true,
