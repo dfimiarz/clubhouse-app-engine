@@ -215,7 +215,8 @@ async function changeCourt(id,cmd){
                     a.court,
                     a.date,
                     a.bumpable,
-                    a.notes
+                    a.notes,
+                    a.type
                     FROM activity a
                     JOIN court c ON a.court = c.id
                     JOIN club cl ON cl.id = c.club
@@ -226,7 +227,7 @@ async function changeCourt(id,cmd){
     const update_court_query = `call changeActivityCourt(?,?,?,?,?,?)`
     
     //IN _id INT, IN _hash VARCHAR(32),IN _date DATE,IN _start TIME, IN _end TIME, IN bumpable TINYINT, IN _notes VARCHAR(256),IN _split_time TIME,IN _new_court INT
-    const split_move_query = `call splitAndMoveActivity(?,?,?,?,?,?,?,?,?)`
+    const split_move_query = `call splitAndMoveActivity(?,?,?,?,?,?,?,?,?,?)`
 
     const connection = await sqlconnector.getConnection()
 
@@ -246,9 +247,9 @@ async function changeCourt(id,cmd){
             } 
 
             //Extract start,end and court for current activity
-            let activity = (({ utc_start, utc_end, court, date, start, end, club_time, utc_club_time, bumpable, notes  }) => ({ utc_start, utc_end,court, date, start, end, club_time, utc_club_time, bumpable,notes }))(activity_res[0]);
-
-            //console.log(activity,new Date().getTime(),new Date(activity.utc_club_time * 1000).getTime())
+            let activity = (
+                ({ utc_start, utc_end, court, date, start, end, club_time, utc_club_time, bumpable, notes,type  }) => ({ utc_start, utc_end,court, date, start, end, club_time, utc_club_time, bumpable,notes,type })
+            )(activity_res[0]);
 
             let curr_time = new Date(activity.utc_club_time * 1000)
 
@@ -266,7 +267,7 @@ async function changeCourt(id,cmd){
             }
             else{
                 //Current session. Split and move
-                await sqlconnector.runQuery(connection,split_move_query,[id,hash,activity.date,activity.start,activity.end,activity.bumpable,activity.notes,activity.club_time,new_court])
+                await sqlconnector.runQuery(connection,split_move_query,[id,hash,activity.date,activity.start,activity.end,activity.bumpable,activity.notes,activity.club_time,new_court,activity.type])
             }
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
