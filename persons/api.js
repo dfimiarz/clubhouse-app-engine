@@ -3,7 +3,9 @@ const bodyParser = require('body-parser')
 const { check, validationResult } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
-const {authGuard} = require('../middleware/clientauth')
+const { authGuard } = require('../middleware/clientauth')
+const authcontroller = require('../auth/controller')
+const utils = require('../utils/utils')
 
 const router = express.Router();
 
@@ -13,7 +15,7 @@ router.use(bodyParser.json())
 /**
  * Route to get all nestboxes
  */
-router.get('/',authGuard, (req, res, next) => {
+router.get('/', authGuard, (req, res, next) => {
 
      controller.getPersons()
           .then((persons) => {
@@ -26,7 +28,7 @@ router.get('/',authGuard, (req, res, next) => {
 
 })
 
-router.get('/eligible',authGuard, (req, res, next) => {
+router.get('/eligible', authGuard, (req, res, next) => {
 
      controller.getEligiblePersons()
           .then((persons) => {
@@ -39,7 +41,7 @@ router.get('/eligible',authGuard, (req, res, next) => {
 
 })
 
-router.get('/members',authGuard, (req, res, next) => {
+router.get('/members', authGuard, (req, res, next) => {
 
      controller.getMembers()
           .then((members) => {
@@ -52,7 +54,7 @@ router.get('/members',authGuard, (req, res, next) => {
 
 })
 
-router.get('/members/active',authGuard, (req, res, next) => {
+router.get('/members/active', authGuard, (req, res, next) => {
 
      controller.getActiveMembers()
           .then((guests) => {
@@ -65,7 +67,7 @@ router.get('/members/active',authGuard, (req, res, next) => {
 
 })
 
-router.get('/members/managers',authGuard,(req,res,next) => {
+router.get('/members/managers', authGuard, (req, res, next) => {
      controller.getClubManagers()
           .then((managers) => {
                res.json(managers)
@@ -75,7 +77,7 @@ router.get('/members/managers',authGuard,(req,res,next) => {
           })
 })
 
-router.get('/guests',authGuard, (req, res, next) => {
+router.get('/guests', authGuard, (req, res, next) => {
 
      controller.getGuests()
           .then((guests) => {
@@ -88,7 +90,7 @@ router.get('/guests',authGuard, (req, res, next) => {
 
 })
 
-router.get('/guests/inactive',authGuard, (req, res, next) => {
+router.get('/guests/inactive', authGuard, (req, res, next) => {
 
      controller.getInactiveGuests()
           .then((guests) => {
@@ -101,7 +103,7 @@ router.get('/guests/inactive',authGuard, (req, res, next) => {
 
 })
 
-router.get('/guests/active',authGuard, (req, res, next) => {
+router.get('/guests/active', authGuard, (req, res, next) => {
 
      controller.getActiveGuests()
           .then((guests) => {
@@ -119,7 +121,13 @@ router.post('/guests', [
      check('firstname').notEmpty().withMessage("Field cannot be empty").isString(),
      check('lastname').notEmpty().withMessage("Field cannot be empty").isString(),
      check('phone').notEmpty().withMessage("Field cannot be empty").isString()
-], (req, res, next) => {
+], async (req, res, next) => {
+
+     //Check if captcha is set for users that are not logged in
+     if (!utils.isAuthenticated(res)) {
+          await check('captcha').notEmpty().withMessage("Captcha must be set").run(req);
+          await check('requestid').notEmpty().withMessage("Missing request id").run(req);
+     }
 
      const errors = validationResult(req);
 
@@ -127,13 +135,24 @@ router.post('/guests', [
           return next(new RESTError(422, { fielderrors: errors }))
      }
 
-     controller.addGuest(req)
-          .then((guests) => {
-               res.json(guests)
-          })
-          .catch((err) => {
-               next(err)
-          })
+     try {
+          //Run captcha verification is users is not authenticated
+          if (! utils.isAuthenticated(res)) {
+               const verified = await authcontroller.verifyCaptcha(req.body.requestid, req.body.captcha)
+
+               if (!verified) {
+                    throw new RESTError(422,{ fielderrors: [{ param: "captcha", msg: "Failed to verify captcha"}]});
+               }
+          }
+
+          await controller.addGuest(req);
+
+          res.status(201).send();
+     }
+     catch (err) {
+          return next(err)
+     }
+
 })
 
 module.exports = router

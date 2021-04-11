@@ -1,14 +1,14 @@
 const express = require('express')
-const bodyParser = require('body-parser')
-const { body } = require('express-validator')
-const utils = require('../utils/utils')
 const RESTError = require('../utils/RESTError')
+const rateLimiter = require('../rate-limiter/rate-limiter')
+const authcontroller = require('./controller')
+
 
 const router = express.Router();
 
-urlEncodedParse = bodyParser.urlencoded({ extended: false })
-router.use(bodyParser.json())
 
+
+router.use(express.json())
 
 /**
  * Route to check for geoauth
@@ -19,24 +19,15 @@ router.get('/geo', (req, res, next) => {
 
 })
 
-router.get('/recaptchascore', async (req, res, next) => {
+router.get('/captcha', rateLimiter.captchalimiter, async (req, res, next) => {
 
-    let token = req.query.token;
-
-    if (!token)
-        return next(new RESTError(400, "Missing Captcha Token"))
-
-    try {
-        const response = await utils.verifyCaptcha(token);
-
-        res.json(response);
-
-    }
-    catch (error) {
-        next(new Error(error));
-    }
-
-
+    authcontroller.getCaptcha()
+        .then((val) => {
+            res.json(val);
+        })
+        .catch((err) => {
+            return next(new RESTError(422, { fielderrors: [{ param: "requestid", msg: "Unable to generate captcha" }] }));
+        })
 
 })
 

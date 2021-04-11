@@ -80,7 +80,7 @@ function getTokenFromHeaders(req) {
  * @param {next} middleware next functinon 
  */
 function authGuard(_req,res,next){
-    if( ! (res.locals.geoauth === true || res.locals.auth === true) ){
+    if( ! (res.locals.geoauth === true || res.locals.userauth === true) ){
         next(new RESTError(401,"Not authorized"));
     }
     else{

@@ -7,9 +7,6 @@ const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 const { authGuard } = require('../middleware/clientauth')
 
-
-
-
 const router = express.Router();
 
 urlEncodedParse = bodyParser.urlencoded({ extended: false })
