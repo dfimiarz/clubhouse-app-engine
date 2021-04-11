@@ -13,12 +13,12 @@ async function getMatchesForDate(date){
         return []
 
     const connection = await sqlconnector.getConnection()
-    const query = `call getBookingsForDate(?) `
+    const query = `call getBookingsForDate(?)`
     try{
 
         let bookings_array = await sqlconnector.runQuery(connection,query,[date])
 
-        return bookings_array[0].map( bookingobj => bookingobj.booking )
+        return bookings_array[0].map( bookingobj => JSON.parse(bookingobj.booking) )
     }
     catch(error){
         throw new Error(error.sqlMessage)
