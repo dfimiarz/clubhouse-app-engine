@@ -88,13 +88,15 @@ async function getMatchDetails(id){
                     JSON_OBJECT(
                             'id', a.id, 
                             'updated' , MD5(a.updated), 
-                            'type', at.desc ,
-                            'date' , a.date  ,
+                            'type_lbl', at.desc ,
+                            'date' , a.date ,
                             'start', a.start, 
                             'end' , a.end , 
                             'court' , a.court, 
                             'bumpable', bumpable , 
                             'notes', a.notes , 
+                            'type', a.type,
+                            'active', a.active,
                             'players', p.players, 
                             'utc_start', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )),
                             'utc_end', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone ))

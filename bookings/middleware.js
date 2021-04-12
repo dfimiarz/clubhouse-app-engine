@@ -4,8 +4,8 @@ const { getSchema, getSupportedCommands } = require('./command')
 
 function checkMatchPermissions(req,res,next) {
 
-    var match = res.locals.match
-
+    var match = res.locals.match;
+    
     match.permissions = []
     
     if( hasRemovePermission(match))
@@ -25,8 +25,6 @@ function checkMatchPermissions(req,res,next) {
     if( hasChangeCourtPermission(match)){
         match.permissions.push('CHANGE_COURT')
     }
-
-    res.locals.match = match
 
     next()
 

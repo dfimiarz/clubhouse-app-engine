@@ -70,11 +70,14 @@ async function removeSession(id,cmd){
     const activity_query = `SELECT
                     a.id,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
-                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    a.type as type,
+                    a.active as active,
+                    a.court as court
                  FROM activity a
                  JOIN court c ON a.court = c.id
                  JOIN club cl ON cl.id = c.club
-                 WHERE a.id = ? and MD5(a.updated) = ? and active = 1
+                 WHERE a.id = ? and MD5(a.updated) = ?
                  FOR UPDATE
                 `
 
@@ -88,12 +91,12 @@ async function removeSession(id,cmd){
         try {
             const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,cmd.hash])
 
-            if (activity_res.length !== 1){
+            if (! Array.isArray(activity_res) || activity_res.length !== 1){
                 throw new Error("Session not found or modified")
             } 
 
-            let match = activity_res[0]
-            let now = new Date()
+            let match = activity_res[0];
+            let now = new Date();
 
             if( ! hasRemovePermission(match,now)){
                 throw new Error("Remove permission denied")
