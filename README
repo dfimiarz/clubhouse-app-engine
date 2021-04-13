@@ -16,4 +16,7 @@ Connect to Database Running in a container
 docker exec -it name_of_container bash
 
 Env Variables
-Development varible are stored in .env file for development and Dockerfile for deployment in docker. Make sure that correct files are set when running the app.
+Development varible are stored in .env file for development and docker-compose.yml for deployment in docker. Make sure that correct files are set when running the app.
+
+Credential files
+System uses firebase to manage user auth. Credential file should be places in /cred/ folder. Use docker-compose.yaml volumes options to map files if needed
