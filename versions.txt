@@ -1,0 +1,6 @@
+Verions 0.2.0
+
+- Added patch endpoint /guest_activations/:id with DEACTIVATE command to deactivate guests.
+- Updated /guest_activations/current to check if guest have already played
+- Made guest phone number optional. Improved guest creation error handling.
+- Added automatic capitalization of first and last names for newly registered guests.

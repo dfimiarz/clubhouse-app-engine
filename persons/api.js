@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { check, validationResult } = require('express-validator')
+const { check, validationResult, oneOf, body } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
 const { authGuard } = require('../middleware/clientauth')
@@ -117,22 +117,22 @@ router.get('/guests/active', authGuard, (req, res, next) => {
 })
 
 router.post('/guests', [
-     check('email').notEmpty().withMessage("Field cannot be empty").isEmail().withMessage("Invalid E-mail Address"),
-     check('firstname').notEmpty().withMessage("Field cannot be empty").isString(),
-     check('lastname').notEmpty().withMessage("Field cannot be empty").isString(),
-     check('phone').notEmpty().withMessage("Field cannot be empty").isString()
+     body('email').isString().trim().notEmpty().withMessage("Field cannot be empty").isEmail().withMessage("Invalid E-mail Address"),
+     body('firstname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
+     body('lastname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
+     body('phone').if((value) => !!value ).isMobilePhone('en-US').withMessage("Must be a valid phone number")
 ], async (req, res, next) => {
 
      //Check if captcha is set for users that are not logged in
      if (!utils.isAuthenticated(res)) {
-          await check('captcha').notEmpty().withMessage("Captcha must be set").run(req);
-          await check('requestid').notEmpty().withMessage("Missing request id").run(req);
+          await body('captcha').notEmpty().withMessage("Captcha must be set").run(req);
+          await body('requestid').notEmpty().withMessage("Missing request id").run(req);
      }
 
      const errors = validationResult(req);
 
      if (!errors.isEmpty()) {
-          return next(new RESTError(422, { fielderrors: errors }))
+          return next(new RESTError(422, { fielderrors: errors.array({onlyFirstError: true})}))
      }
 
      try {

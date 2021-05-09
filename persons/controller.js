@@ -124,6 +124,16 @@ async function addGuest(request) {
     const phone = request.body.phone;
     const guest_type = 2;
 
+    const _firstNames = firstname.split(" ");
+    const _lastNames = lastname.split("-")
+    
+    const formattedFirstName = _firstNames.reduce((acc,val,index) => {
+            return acc + (index === 0 ? "" : " ") + val.charAt(0).toUpperCase() + val.slice(1)
+        },"")
+
+    const formattedLastName = _lastNames.reduce((acc,val,index) => {
+        return acc + (index === 0 ? "" : "-") + val.charAt(0).toUpperCase() + val.slice(1)
+    },"")
 
     const query = "INSERT INTO `person` (`type`,`club`,`created`,`firstname`,`lastname`,`email`,`phone`,`gender`) VALUES (?,?,now(),?,?,?,?,DEFAULT)";
 
@@ -131,7 +141,7 @@ async function addGuest(request) {
 
     try {
 
-        await sqlconnector.runQuery(connection, query, [guest_type, club_id, firstname, lastname, email, phone])
+        await sqlconnector.runQuery(connection, query, [guest_type, club_id, formattedFirstName, formattedLastName, email, phone])
 
     }
     catch (error) {
