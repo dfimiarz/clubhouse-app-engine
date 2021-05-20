@@ -1,11 +1,13 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { checkSchema, validationResult } = require('express-validator')
+const { checkSchema, check, validationResult, oneOf, body } = require('express-validator')
 const matchcontroller = require('./controller')
 const { PatchCommandProcessor } = require('./controller')
 const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 const { authGuard } = require('../middleware/clientauth')
+const RESTError = require('./../utils/RESTError')
+
 
 const router = express.Router();
 
@@ -20,9 +22,9 @@ router.get('/', authGuard, (req, res, next) => {
 
      const date = req.query.date ? req.query.date : null
 
-     matchcontroller.getMatchesForDate(date)
-          .then((matches) => {
-               res.send(matches)
+     matchcontroller.getBookingsForDate(date)
+          .then((bookings) => {
+               res.json(bookings)
           })
           .catch((err) => {
                next(err)
@@ -30,7 +32,29 @@ router.get('/', authGuard, (req, res, next) => {
 
 })
 
-router.post('/', authGuard, (req, res, next) => {
+router.post('/',[
+          body('court').isInt().withMessage("Invalid court id"),
+          body('bumpable').toInt().custom((val) => {
+               return [0,1].indexOf(val) === -1 ? false: true;
+          }).withMessage("Value not allowed"),
+          body('type').isInt().withMessage("Invalid booking type"),
+          body('date').isDate().withMessage("Invalid date"),
+          body('players').isArray({ min: 1, max: 4}).withMessage("Incorrect number of players"),
+          body('players.*.id').exists().withMessage("Player ID must be set").isInt().withMessage("Incorrect player ID"),
+          body('players.*.type').exists().withMessage("Player TYPE must be set").isInt().withMessage("Incorrect player TYPE"),
+          body('start').matches(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/,'i').withMessage("Invalid format"),
+          body('end').matches(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/,'i').withMessage("Invalid format"),
+          body('note').trim()
+          
+], authGuard, (req, res, next) => {
+
+     const errors = validationResult(req);
+
+     if (!errors.isEmpty()) {
+          //TO DO: Add logging
+          return next(new RESTError(422, { fielderrors: errors.array({onlyFirstError: true})}))
+     }
+
 
      matchcontroller.addMatch(req)
           .then((courts) => {
