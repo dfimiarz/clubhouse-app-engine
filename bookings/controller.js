@@ -1,9 +1,12 @@
 const sqlconnector = require('../db/SqlConnector')
 const { hasCreatePermission } = require('./permissions/MatchPermissions')
+const { validateBooking } = require('./permissions/BookingPermissions')
 const { getProcessor } = require('./command')
 const MatchCommandProcessors = require('./processor')
 const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 const RESTError = require('./../utils/RESTError');
+
+const CLUB_ID = process.env.CLUB_ID;
 
 // async function getMatchesForDate(date){
 
@@ -133,6 +136,171 @@ async function addMatch( request ){
 
 /**
  * 
+ * @param { Request } request 
+ */
+ async function addBooking( request ){
+
+    const OPCODE = "ADD_BOOKING";
+
+    console.log(request.body)
+
+    const players = request.body.players;
+
+    const booking = (({court,date,start,end,note,bumpable,type}) => ({ court: court, date: date, start: start, end: end, note: note, bumpable: bumpable,type:type}) )(request.body)
+
+    //START Check unique players
+    const uniqueIds = [...new Set(players.map((player) => player.id))];
+
+    if( uniqueIds.length !== players.length ){
+        throw new RESTError(422,"Duplicate players found");
+    }
+    //END
+
+    //DATE_FORMAT(convert_tz(now(),@@GLOBAL.time_zone,cl.time_zone),"%Y-%m-%d") as loc_req_date,
+
+    const session_time_q = `SELECT
+                        c.id as court,
+                        UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                        UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                        UNIX_TIMESTAMP(convert_tz(?,cl.time_zone,@@GLOBAL.time_zone )) as utc_day_start,
+                        UNIX_TIMESTAMP(now()) as utc_req_time,
+                        CAST(convert_tz(now(),@@GLOBAL.time_zone,cl.time_zone) as DATE) + 0 as loc_req_date,
+                        CAST(? as DATE) + 0 as booking_date,
+                        c.openmin,
+                        c.closemin,
+                        c.state
+                        FROM court c 
+                        JOIN club cl ON cl.id = c.club
+                        WHERE c.id = ?`
+
+    //end,start,court,date
+    const overlap_check_q = `SELECT EXISTS(
+                        SELECT 
+                        id
+                        FROM
+                        activity
+                        WHERE
+                        ? > start
+                        AND ? < end
+                        AND court = ?
+                        AND date = ?
+                        AND active = 1 FOR UPDATE) as session_found`;
+
+    const person_check_q = `SELECT p.id,p.type,m.role FROM clubhouse.person p left join member m on m.person_id = p.id WHERE p.id IN ? AND p.club = ? LOCK IN SHARE MODE`;
+
+
+    const connection = await sqlconnector.getConnection();
+    
+    try{
+
+        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
+
+        try {
+
+            //START Check players
+            const persons_result = await sqlconnector.runQuery(connection,person_check_q,[[uniqueIds],CLUB_ID]);
+
+            if( ! ( Array.isArray(persons_result) && persons_result.length === uniqueIds.length )){
+                throw new RESTError(422,"Person(s) not found");
+            }
+
+            const playerData = persons_result.map((person) => ({id:person.id,type:person.type,role:person.role}))
+            //END
+
+
+            //START Get court and time data
+            let activity_result = await sqlconnector.runQuery(connection,session_time_q,[booking.date,booking.start,booking.date,booking.end,booking.date,booking.date,booking.court])
+
+            if( activity_result.length !== 1 ) {
+                throw new RESTError(422, "Failed to verify booking time");
+            }
+
+            const bookingParams = 
+                {   
+                    court: activity_result[0].court, 
+                    utc_start: activity_result[0].utc_start, 
+                    utc_end: activity_result[0].utc_end, 
+                    utc_day_start: activity_result[0].utc_day_start,
+                    utc_req_time: activity_result[0].utc_req_time,
+                    local_req_date: activity_result[0].loc_req_date,
+                    booking_date: activity_result[0].booking_date,
+                    court_open: activity_result[0].openmin, 
+                    court_closed: activity_result[0].closemin, 
+                    courtstate: activity_result[0].state,
+                    players: playerData,
+                    type: booking.type,
+                    bumpable: booking.bumpable
+                }
+            //END
+
+            console.log(bookingParams);
+
+            //Check permissions
+            const errors = validateBooking('create',bookingParams);
+            if ( errors.length > 0 ){
+                throw new RESTError(422, "Create permission denied: " + errors[0]);
+            }
+
+            //START Check for overlapping bookings
+            const overlap_result = await sqlconnector.runQuery(connection,overlap_check_q,[booking.end,booking.start,booking.court,booking.date]);
+
+            if( ! ( Array.isArray(overlap_result) && overlap_result.length === 1 )){
+                throw new RESTError(422,"Error checking for overlapping bookings");
+            }
+
+            if( overlap_result[0].session_found === 1 ){
+                throw new RESTError(422,"Overlappling booking found");
+            }
+            //END
+
+            __addBooking(connection,booking,players);
+
+            await sqlconnector.runQuery(connection,"COMMIT",[])
+        }
+        catch(error){
+            await sqlconnector.runQuery(connection, "ROLLBACK", [])
+            throw error;
+        }
+    }
+    catch(error){
+        console.log(error)
+        throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
+    }
+    finally{
+        connection.release()
+    }
+}
+
+/**
+ * 
+ * @param {*} connection Mysql connection object
+ * @param {*} bookinginfo Booking info object
+ * 
+ * This function does the actual insert to the datbase. Must be called within a transaction.
+ */
+async function __addBooking(connection,bookinginfo, players){
+
+    //console.log(bookinginfo,players)
+
+    const insertActivityQ = `INSERT INTO \`activity\` (\`id\`, \`created\`, \`updated\`, \`type\`, \`court\`, \`date\` ,\`start\`, \`end\`, \`bumpable\`,\`active\`,\`notes\`)
+    VALUES (NULL, NULL, NULL, ?, ?, ?, ?, ?, ? ,1, ?)`;
+
+    const insertPlayersQ = `INSERT INTO \`player\` VALUES ?`;
+
+    const activity_result = await sqlconnector.runQuery(connection,insertActivityQ,[bookinginfo.type, bookinginfo.court, bookinginfo.date, bookinginfo.start, bookinginfo.end, bookinginfo.bumpable, bookinginfo.note])
+
+    const activity_id = activity_result.insertId;
+
+    //`id`, `activity`, `person`, `status`, `type`
+    const playersArrays = players.map((player) => [null,activity_id,player.id,1,player.type])
+
+    const player_result = await sqlconnector.runQuery(connection,insertPlayersQ,[playersArrays])
+
+
+}
+
+/**
+ * 
  * @param { int } Session id 
  */
 async function getMatchDetails(id){
@@ -205,7 +373,7 @@ function processPatchCommand(id, cmd){
 
 module.exports = {
     addMatch: addMatch,
-    // getMatchesForDate: getMatchesForDate,
+    addBooking,
     getMatchDetails: getMatchDetails,
     processPatchCommand,
     getBookingsForDate

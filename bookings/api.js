@@ -56,7 +56,7 @@ router.post('/',[
      }
 
 
-     matchcontroller.addMatch(req)
+     matchcontroller.addBooking(req)
           .then((courts) => {
                console.log("Count", MatchEventEmitter.listenerCount('matchadded'));
                const val = MatchEventEmitter.emit('matchadded', 'test')
