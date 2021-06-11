@@ -8,6 +8,7 @@ async function endSession(id,cmd){
 
     const activity_query = `SELECT
                     a.id,
+                    DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
                     cl.time_zone
@@ -43,6 +44,8 @@ async function endSession(id,cmd){
             await sqlconnector.runQuery(connection,update_activity_q,[Math.floor(now.getTime() / 1000),match.time_zone,id])
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            return match.booking_date;
         }
         catch( err ){
 
@@ -69,6 +72,8 @@ async function removeSession(id,cmd){
 
     const activity_query = `SELECT
                     a.id,
+                    a.date,
+                    DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
                     a.type as type,
@@ -105,6 +110,8 @@ async function removeSession(id,cmd){
             await sqlconnector.runQuery(connection,remove_activity_q,[id])
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            return match.booking_date;
         }
         catch( err ){
 
@@ -136,7 +143,8 @@ async function changeSessionTime(id,cmd){
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_start,
                     UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_new_end,
                     a.court,
-                    a.date
+                    a.date,
+                    DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date
                  FROM activity a
                  JOIN court c ON a.court = c.id
                  JOIN club cl ON cl.id = c.club
@@ -181,6 +189,8 @@ async function changeSessionTime(id,cmd){
             await sqlconnector.runQuery(connection,change_time_q,[id,cmd.hash,court,date,new_start,new_end])
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            return activity_res[0].booking_date;
         }
         catch( err ){
 
@@ -217,6 +227,7 @@ async function changeCourt(id,cmd){
                     a.end,
                     a.court,
                     a.date,
+                    DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date,
                     a.bumpable,
                     a.notes,
                     a.type
@@ -251,7 +262,7 @@ async function changeCourt(id,cmd){
 
             //Extract start,end and court for current activity
             let activity = (
-                ({ utc_start, utc_end, court, date, start, end, club_time, utc_club_time, bumpable, notes,type  }) => ({ utc_start, utc_end,court, date, start, end, club_time, utc_club_time, bumpable,notes,type })
+                ({ utc_start, utc_end, court, date, start, end, club_time, utc_club_time, bumpable, notes,type,booking_date  }) => ({ utc_start, utc_end,court, date, start, end, club_time, utc_club_time, bumpable,notes,type,booking_date })
             )(activity_res[0]);
 
             let curr_time = new Date(activity.utc_club_time * 1000)
@@ -274,6 +285,8 @@ async function changeCourt(id,cmd){
             }
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            return activity.booking_date;
         }
         catch( err ){
 

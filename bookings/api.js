@@ -7,6 +7,8 @@ const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 const { authGuard } = require('../middleware/clientauth')
 const RESTError = require('./../utils/RESTError')
+const pusher = require('./../pusher/Pusher')
+const { request } = require('express')
 
 
 const router = express.Router();
@@ -58,12 +60,18 @@ router.post('/',[
 
      matchcontroller.addMatch(req)
           .then((courts) => {
-               console.log("Count", MatchEventEmitter.listenerCount('matchadded'));
-               const val = MatchEventEmitter.emit('matchadded', 'test')
-               console.log(`emitted ${val}`)
+               //console.log("Count", MatchEventEmitter.listenerCount('matchadded'));
+               // const val = MatchEventEmitter.emit('matchadded', 'test')
+               // console.log(`emitted ${val}`)
+               pusher.trigger("bookings","booking_change",{
+                    date: req.body.date
+               }).catch(err => {
+                    console.log(err)
+               })
                res.status(201).send()
           })
           .catch((err) => {
+               //console.log(err)
                next(err)
           })
 
@@ -101,7 +109,14 @@ router.patch('/:id', authGuard, validatePatchRequest,
      (req, res, next) => {
 
           matchcontroller.processPatchCommand(req.params.id, res.locals.cmd)
-               .then((results) => {
+               .then((result) => {
+
+                    pusher.trigger("bookings","booking_change",{
+                         date: result
+                    }).catch(err => {
+                         console.log(err)
+                    })
+
                     res.status(204).send()
                }).catch((err) => {
 
