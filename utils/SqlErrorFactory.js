@@ -18,6 +18,9 @@ const sql_errors = {
             'code': 422,
             'msg' : "Player(s) not found"
         }
+    },
+    'GET_BOOKING':{
+        
     }
 }
 

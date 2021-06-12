@@ -135,7 +135,9 @@ async function addMatch( request ){
  * 
  * @param { int } Session id 
  */
-async function getMatchDetails(id){
+async function getBookingDetails(id){
+
+    const OPCODE = "GET_BOOKING";
 
     let query = `SELECT
                     JSON_OBJECT(
@@ -172,10 +174,20 @@ async function getMatchDetails(id){
     const connection = await sqlconnector.getConnection()
 
     try{
-        return await sqlconnector.runQuery(connection,query,[id])
+        const result = await sqlconnector.runQuery(connection,query,[id])
+
+        if( ! (Array.isArray(result) && result.length === 1) ){
+            throw new RESTError(404, "Booking not found")
+        }
+
+        const activity = result;
+
+        return activity;
     }
     catch( error ){
-        throw new Error( error.sqlMessage )
+
+        throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
+    
     }
     finally{
         connection.release()
@@ -205,8 +217,7 @@ function processPatchCommand(id, cmd){
 
 module.exports = {
     addMatch: addMatch,
-    // getMatchesForDate: getMatchesForDate,
-    getMatchDetails: getMatchDetails,
+    getBookingDetails,
     processPatchCommand,
     getBookingsForDate
 }
