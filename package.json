@@ -1,6 +1,6 @@
 {
   "name": "clubhouse-app-engine",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "REST API backend for clubhouse project",
   "main": "server.js",
   "scripts": {
