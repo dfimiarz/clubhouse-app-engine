@@ -60,15 +60,14 @@ router.post('/',[
 
      matchcontroller.addBooking(req)
           .then((courts) => {
-               //console.log("Count", MatchEventEmitter.listenerCount('matchadded'));
-               // const val = MatchEventEmitter.emit('matchadded', 'test')
-               // console.log(`emitted ${val}`)
+
                pusher.trigger("bookings","booking_change",{
                     date: req.body.date
                }).catch(err => {
                     console.log(err)
                })
                res.status(201).send()
+               
           })
           .catch((err) => {
                console.log(err)
@@ -84,24 +83,18 @@ router.get('/:id', authGuard, (req, res, next) => {
      const id = req.params.id ? req.params.id : null
 
      matchcontroller.getBookingDetails(id)
-          .then((results) => {
-
-               if (! Array.isArray(results) || results.length !== 1) {
-                    return res.json(null)
-               }
-
-               res.locals.match = JSON.parse(results[0].match)
+          .then((booking) => {
+               res.locals.booking = booking;
                next()
-
           })
           .catch((err) => {
                next(err)
           })
-},
+     },
      checkMatchPermissions,
      (req, res, next) => {
-
-          res.json(res.locals.match)
+          console.log(res.locals.booking);
+          res.json(res.locals.booking)
      }
 )
 

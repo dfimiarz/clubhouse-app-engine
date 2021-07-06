@@ -8,29 +8,6 @@ const RESTError = require('./../utils/RESTError');
 
 const CLUB_ID = process.env.CLUB_ID;
 
-// async function getMatchesForDate(date){
-
-//     if( date === null )
-//         return []
-
-//     const connection = await sqlconnector.getConnection()
-//     const query = `call getBookingsForDate(?)`
-//     try{
-
-//         let bookings_array = await sqlconnector.runQuery(connection,query,[date])
-
-//         return bookings_array[0].map( bookingobj => JSON.parse(bookingobj.booking) )
-//     }
-//     catch(error){
-//         throw new Error(error.sqlMessage)
-//     }
-//     finally{
-//         connection.release()
-//     }
-
-
-// }
-
 async function getBookingsForDate(date){
     if( date === null )
         return []
@@ -142,7 +119,7 @@ async function addMatch( request ){
 
     const OPCODE = "ADD_BOOKING";
 
-    console.log(request.body)
+    //console.log(request.body)
 
     const players = request.body.players;
 
@@ -233,7 +210,7 @@ async function addMatch( request ){
                 }
             //END
 
-            console.log(bookingParams);
+            //console.log(bookingParams);
 
             //Check permissions
             const errors = validateBooking('create',bookingParams);
@@ -263,7 +240,7 @@ async function addMatch( request ){
         }
     }
     catch(error){
-        console.log(error)
+        //console.log(error)
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
     }
     finally{
@@ -307,53 +284,164 @@ async function getBookingDetails(id){
 
     const OPCODE = "GET_BOOKING";
 
-    let query = `SELECT
-                    JSON_OBJECT(
-                            'id', a.id, 
-                            'updated' , MD5(a.updated), 
-                            'type_lbl', at.desc ,
-                            'date' , a.date ,
-                            'start', a.start, 
-                            'end' , a.end , 
-                            'court' , a.court, 
-                            'bumpable', bumpable , 
-                            'notes', a.notes , 
-                            'type', a.type,
-                            'active', a.active,
-                            'players', p.players, 
-                            'utc_start', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )),
-                            'utc_end', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone ))
-                        ) as 'match'
-                FROM 
-                    activity a
-                LEFT JOIN (
-                    SELECT activity,cast(concat('[',group_concat(json_object('id',person,'firstname',p.firstname,'lastname',p.lastname,'type',pt.desc)),']') as JSON) as players 
-                    FROM player
-                    JOIN person p on p.id = player.person
-                    JOIN player_type pt on pt.id = player.type
-                    GROUP BY activity 
-                    ) p
-                ON a.id = p.activity
-                JOIN court c ON a.court = c.id
-                JOIN club cl ON cl.id = c.club
-                JOIN activity_type at on at.id = a.type
-                WHERE a.id = ?`;
+
+    const booking_q = `SELECT 
+                            c.id AS court_id,
+                            UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.start),
+                                            cl.time_zone,
+                                            @@GLOBAL.time_zone)) AS utc_start,
+                            UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.end),
+                                            cl.time_zone,
+                                            @@GLOBAL.time_zone)) AS utc_end,
+                            UNIX_TIMESTAMP(a.created) AS utc_created,
+                            UNIX_TIMESTAMP(a.updated) AS utc_updated,
+                            UNIX_TIMESTAMP(CONVERT_TZ(a.date,
+                                            cl.time_zone,
+                                            @@GLOBAL.time_zone)) AS utc_day_start,
+                            UNIX_TIMESTAMP(NOW()) AS utc_req_time,
+                            CAST(CONVERT_TZ(NOW(), @@GLOBAL .time_zone, cl.time_zone)
+                                AS DATE) + 0 AS loc_req_date,
+                            DATE_FORMAT(a.date,"%Y-%m-%d" ) as date,
+                            a.start as start,
+                            a.end as end,
+                            a.active,
+                            at.desc AS booking_type_desc,
+                            at.lbl AS booking_type_lbl,
+                            a.bumpable,
+                            a.created,
+                            a.updated,
+                            a.notes,
+                            MD5(a.updated) AS etag,
+                            c.openmin AS court_open,
+                            c.closemin AS court_close,
+                            c.state AS court_state,
+                            c.name as court_name
+                        FROM
+                            activity a
+                                JOIN
+                            court c ON a.court = c.id
+                                JOIN
+                            club cl ON cl.id = c.club
+                                JOIN
+                            activity_type at ON at.id = a.type
+                        WHERE
+                            a.id = ?
+                        LOCK IN SHARE MODE`;
+
+    const player_q = `SELECT 
+                            activity, person as player_id, p.firstname, p.lastname,p.type as person_type_id, pert.lbl as person_type_lbl, player.type as player_type, pt.lbl as player_type_lbl,pt.desc as player_type_desc
+                        FROM
+                            player
+                                JOIN
+                            person p ON p.id = player.person
+                                JOIN
+                            player_type pt ON pt.id = player.type
+                                JOIN
+                            person_type pert ON pert.id = p.type
+                        WHERE 
+                            activity = ?`;
+
+
+    // let query = `SELECT
+    //                 JSON_OBJECT(
+    //                         'id', a.id, 
+    //                         'updated' , MD5(a.updated), 
+    //                         'type_lbl', at.desc ,
+    //                         'date' , a.date ,
+    //                         'start', a.start, 
+    //                         'end' , a.end , 
+    //                         'court' , a.court, 
+    //                         'bumpable', bumpable , 
+    //                         'notes', a.notes , 
+    //                         'type', a.type,
+    //                         'active', a.active,
+    //                         'players', p.players, 
+    //                         'utc_start', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )),
+    //                         'utc_end', UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone ))
+    //                     ) as 'match'
+    //             FROM 
+    //                 activity a
+    //             LEFT JOIN (
+    //                 SELECT activity,cast(concat('[',group_concat(json_object('id',person,'firstname',p.firstname,'lastname',p.lastname,'type',pt.desc)),']') as JSON) as players 
+    //                 FROM player
+    //                 JOIN person p on p.id = player.person
+    //                 JOIN player_type pt on pt.id = player.type
+    //                 GROUP BY activity 
+    //                 ) p
+    //             ON a.id = p.activity
+    //             JOIN court c ON a.court = c.id
+    //             JOIN club cl ON cl.id = c.club
+    //             JOIN activity_type at on at.id = a.type
+    //             WHERE a.id = ?`;
 
     const connection = await sqlconnector.getConnection()
 
-    try{
-        const result = await sqlconnector.runQuery(connection,query,[id])
+   
 
-        if( ! (Array.isArray(result) && result.length === 1) ){
-            throw new RESTError(404, "Booking not found")
+    try{
+
+        await sqlconnector.runQuery(connection,"START TRANSACTION",[])
+
+
+        const booking_result = await sqlconnector.runQuery(connection,booking_q,[id])
+        const players_result = await sqlconnector.runQuery(connection,player_q,[id])
+
+        await sqlconnector.runQuery(connection,"COMMIT",[])
+
+        if( ! (Array.isArray(booking_result) && booking_result.length === 1) ){
+            throw new RESTError(404, "Booking not found");
         }
 
-        const activity = result;
+        if( ! Array.isArray(players_result) || players_result.length === 0 ){
+            throw new RESTError(500, "Players not found");
+        }
 
-        return activity;
+        const booking = {
+            utc_start: booking_result[0]['utc_start'],
+            utc_end: booking_result[0]['utc_end'],
+            utc_day_start: booking_result[0]['utc_day_start'],
+            utc_req_time: booking_result[0]['utc_req_time'],
+            loc_req_date: booking_result[0]['loc_req_date'],
+            utc_created: booking_result[0]['utc_created'],
+            utc_updated: booking_result[0]['utc_updated'],
+            date: booking_result[0]['date'],
+            start: booking_result[0]['start'],
+            end: booking_result[0]['end'],
+            active: booking_result[0]['active'],
+            booking_type_desc: booking_result[0]['booking_type_desc'],
+            booking_type_lbl: booking_result[0]['booking_type_lbl'],
+            bumpable: booking_result[0]['bumpable'],
+            created: booking_result[0]['created'],
+            updated: booking_result[0]['updated'],
+            notes: booking_result[0]['notes'],
+            etag: booking_result[0]['etag'],
+            court_id: booking_result[0]['court_id'],
+            court_open: booking_result[0]['court_open'],
+            court_close: booking_result[0]['court_close'],
+            court_state: booking_result[0]['court_state'],
+            court_name: booking_result[0]['court_name'],
+            players: [],
+            permissions: []
+        }
+
+        players_result.forEach( pinfo => {
+            const player = {
+                player_id: pinfo['player_id'],
+                firstname: pinfo['firstname'],
+                lastname: pinfo['lastname'],
+                person_type_id: pinfo['person_type_id'],
+                person_type_lbl: pinfo['person_type_lbl'],
+                player_type: pinfo['player_type'],
+                player_type_lbl: pinfo['player_type_lbl'],
+                player_type_desc: pinfo['player_type_desc'],
+            }
+            booking.players.push(player)
+        });        
+
+        return booking;
     }
     catch( error ){
-
+        console.log(error)
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
     
     }

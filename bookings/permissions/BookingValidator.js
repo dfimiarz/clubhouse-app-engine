@@ -18,7 +18,8 @@
 
 const MATCH_TYPE = 1000;
 
-const MIN_NEW_BOOKING_DURATION = 5 * 60
+const MIN_NEW_BOOKING_DURATION = 5 * 60;
+const FRESH_BOOKING_THRESHOLD_SEC = 5 * 60;
 
 function courtOpen({courtstate}){
 
@@ -50,7 +51,7 @@ function checkBookingEnd({ utc_day_start,court_closed,utc_end}){
 function checkMatchBookingDate({ local_req_date, booking_date, type }){
 
         if( type === MATCH_TYPE ){
-            return local_req_date !== booking_date ? "Matches must be booked for the same date": null;
+            return local_req_date !== booking_date ? "Matches must be booked for today": null;
         }
         else{
             return null;
@@ -66,19 +67,68 @@ function checkBookingDuration({utc_start,utc_end}){
     return utc_end - utc_start < MIN_NEW_BOOKING_DURATION ? "Session must be at least 5 minutes long" : null
 }
 
-function checkCancelable({utc_end,utc_req_time,utc_updated,utc_start}){
+function checkBookingNotEnded({utc_end,utc_req_time}){
+    
+    if(  utc_end < utc_req_time ){
+        //Cannot change time for sessions that have ended
+        return "Booking has ended";
 
-    if( utc_end <= utc_req_time ){
-        return utc_updated + (15 * 60) <= utc_req_time ? "Only recently changed booking can be cancelled" : null
     } else {
-        return utc_start + ( 5 + 60 ) <=  utc_req_time ? "Cannot cancel ongoing session" : null 
+        //Ok to change time for ongoing or future sessions
+        return null
     }
 
 }
 
+function checkCancelTimeframe({utc_end,utc_req_time,utc_created,utc_start}){
+
+    if(  utc_end < utc_req_time ){
+        //Sessiong that have ended can be cancelled within 5 mintues of creation
+        return utc_created + (5 * 60) <= utc_req_time ? "Sessions that have ended can be cancelled within 5 mintute of creation time" : null;
+
+    } else {
+
+        if( utc_start < utc_req_time ){
+
+            if( utc_start < utc_created ){
+                //Ongoing sessions booked retroactively can be cancelled within 5 mintues of creation
+                return utc_created + (5 * 60) <= utc_req_time ? "Ongoing bookings can be cancelled within 5 mintues of creation time" : null;
+            }
+            else{
+                //Ongoing sessions booked ahead of time can be cancelled within 5 mintues of starting
+                return utc_start + FRESH_BOOKING_THRESHOLD_SEC <= utc_req_time ? "Unable to cancel onging booking" : null;
+            }
+
+        } else {
+
+            //Future session can be cancelled 
+            return null;
+
+        }
+    }
+
+}
+
+function isActive({active}){
+    return active === 1 ? null : "Booking must be active"
+}
+
+function isOngoing({utc_start,utc_end,utc_req_time}){
+
+    return utc_req_time < utc_end && utc_req_time >= utc_start ? null : "Booking must be ongoing";
+
+}
+
+//Fresh booking is one that stared FRESH_BOOKING_THRESHOLD_SEC before utc_req_time
+function isNotFreshBooking({utc_start,utc_req_time}){
+    return utc_start + FRESH_BOOKING_THRESHOLD_SEC <= utc_req_time ? null : "Booking too fresh"
+}
+
 const validators = {
                      "create" : [ courtOpen, checkBookingStart , checkBookingEnd, checkMatchBookingDate, checkStartAndEndTime, checkBookingDuration ],
-                     "cancel" : [ checkCancelable ]
+                     "cancel" : [ isActive, checkCancelTimeframe],
+                     "end": [ isActive, isOngoing, isNotFreshBooking],
+                     "move": [ isActive, checkBookingNotEnded ]
                     }
 
 

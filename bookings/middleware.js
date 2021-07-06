@@ -1,30 +1,41 @@
-const { hasRemovePermission, hasEndPermission, hasChangeEndPermission, hasChangeStartPermission, hasChangeCourtPermission } = require('./permissions/MatchPermissions')
 const Validator = require('jsonschema').Validator
 const { getSchema, getSupportedCommands } = require('./command')
+const { validateBooking } = require('./permissions/BookingPermissions')
 
 function checkMatchPermissions(req,res,next) {
 
-    var match = res.locals.match;
+    const booking = res.locals.booking;
+
+    const permissions = ['cancel','end','move']
     
-    match.permissions = []
-    
-    if( hasRemovePermission(match))
-        match.permissions.push('CAN_REMOVE')
+    permissions.forEach( permission => {
+        console.log("Checking",permission);
+        const errors = validateBooking( permission, booking )
+        
+        console.log(errors)
 
-    if( hasEndPermission(match) )
-        match.permissions.push('CAN_END')
+        if ( errors.length === 0 ){
+            booking.permissions.push(permission)
+        }
+    });
 
-    if( hasChangeStartPermission(match)){
-        match.permissions.push('CHANGE_START')
-    }
+    // if( hasRemovePermission(booking))
+    //     booking.permissions.push('CAN_REMOVE')
 
-    if( hasChangeEndPermission(match)){
-        match.permissions.push('CHANGE_END')
-    }
+    // if( hasEndPermission(booking) )
+    //     booking.permissions.push('CAN_END')
 
-    if( hasChangeCourtPermission(match)){
-        match.permissions.push('CHANGE_COURT')
-    }
+    // if( hasChangeStartPermission(booking)){
+    //     booking.permissions.push('CHANGE_START')
+    // }
+
+    // if( hasChangeEndPermission(booking)){
+    //     booking.permissions.push('CHANGE_END')
+    // }
+
+    // if( hasChangeCourtPermission(booking)){
+    //     booking.permissions.push('CHANGE_COURT')
+    // }
 
     next()
 

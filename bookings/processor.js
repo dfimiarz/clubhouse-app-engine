@@ -1,23 +1,49 @@
 const sqlconnector = require('../db/SqlConnector')
 const { hasEndPermission, hasRemovePermission, checkChangeTimePermissions, hasChangeCourtPermission } = require('./permissions/MatchPermissions')
+const RESTError = require('./../utils/RESTError');
+const { validateBooking } = require('./permissions/BookingPermissions');
+
+const CLUB_ID = process.env.CLUB_ID;
+
+const activity_q = `SELECT
+                    c.id as court,
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+                    UNIX_TIMESTAMP(convert_tz(?,cl.time_zone,@@GLOBAL.time_zone )) as utc_day_start,
+                    UNIX_TIMESTAMP(now()) as utc_req_time,
+                    CAST(convert_tz(now(),@@GLOBAL.time_zone,cl.time_zone) as DATE) + 0 as loc_req_date,
+                    a.date as booking_date,
+                    a.active,
+                    a.type,
+                    a.bumpable,
+                    a.created,
+                    a.updated,
+                    c.openmin as court_open,
+                    c.closemin as court_close,
+                    c.state as court_state
+                    FROM activity a 
+                    JOIN court c on a.court = c.id 
+                    JOIN club cl ON cl.id = c.club
+                    WHERE a.id = ? AND MD5(a.updated) = ?
+                    FOR UPDATE`
 
 
 async function endSession(id,cmd){
 
     const connection = await sqlconnector.getConnection()
 
-    const activity_query = `SELECT
-                    a.id,
-                    DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date,
-                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
-                    UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
-                    cl.time_zone
-                    FROM activity a
-                    JOIN court c ON a.court = c.id
-                    JOIN club cl ON cl.id = c.club
-                    WHERE a.id = ? and MD5(a.updated) = ? and active = 1
-                    FOR UPDATE
-                `
+    // const activity_query = `SELECT
+    //                 a.id,
+    //                 DATE_FORMAT(a.date,'%Y-%m-%d') as booking_date,
+    //                 UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.start),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
+    //                 UNIX_TIMESTAMP(convert_tz(concat(a.date,' ',a.end),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
+    //                 cl.time_zone
+    //                 FROM activity a
+    //                 JOIN court c ON a.court = c.id
+    //                 JOIN club cl ON cl.id = c.club
+    //                 WHERE a.id = ? and MD5(a.updated) = ? and active = 1
+    //                 FOR UPDATE
+    //             `
 
     //Time will be converted from UTC (server) to club time zone
     const update_activity_q = `UPDATE activity SET end = TIME(convert_tz(from_unixtime(?),@@GLOBAL.time_zone,? )) where id = ?`
@@ -26,19 +52,42 @@ async function endSession(id,cmd){
         await sqlconnector.runQuery(connection,"START TRANSACTION",[])
 
         try {
-            const activity_res = await sqlconnector.runQuery(connection,activity_query,[id,cmd.hash])
+            const activity_result = await sqlconnector.runQuery(connection,activity_q,[id,cmd.hash])
 
-            if (activity_res.length !== 1){
-                throw new Error("Session not found or modified")
-            } 
+            if( activity_result.length !== 1 ) {
+                throw new RESTError(422, "Failed to verify booking time");
+            }
 
-            let match = activity_res[0]
-            //Get current time but disregard seconds since we want sessions to end on even minutes
-            let now = new Date()
-            now.setSeconds(0)
+            let match = activity_result[0];
 
-            if( ! hasEndPermission(match,now)){
-                throw new Error("Permission denied")
+            console.log(match);
+
+
+            const bookingParams = 
+                {   
+                    court: activity_result[0].court, 
+                    utc_start: activity_result[0].utc_start, 
+                    utc_end: activity_result[0].utc_end, 
+                    utc_day_start: activity_result[0].utc_day_start,
+                    utc_req_time: activity_result[0].utc_req_time,
+                    local_req_date: activity_result[0].loc_req_date,
+                    booking_date: activity_result[0].booking_date,
+                    court_open: activity_result[0].court_open, 
+                    court_closed: activity_result[0].court_close, 
+                    courtstate: activity_result[0].court_state,
+                    type: activity_result[0].type,
+                    bumpable: activity_result[0].bumpable,
+                    active: activity_result[0].active,
+                    created: activity_result[0].created,
+                    updated: activity_result[0].updated
+                }
+
+            console.log(bookingParams);
+
+            //Check permissions
+            const errors = validateBooking('end',bookingParams);
+            if ( errors.length > 0 ){
+                throw new RESTError(422, "Permission to end denied: " + errors[0]);
             }
 
             await sqlconnector.runQuery(connection,update_activity_q,[Math.floor(now.getTime() / 1000),match.time_zone,id])
@@ -60,6 +109,7 @@ async function endSession(id,cmd){
         }
     }
     catch( err ) {
+        console.log(err)
         throw new Error( err )
     }
     finally
