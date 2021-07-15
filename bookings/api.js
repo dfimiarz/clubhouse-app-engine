@@ -3,12 +3,11 @@ const bodyParser = require('body-parser')
 const { checkSchema, check, validationResult, oneOf, body } = require('express-validator')
 const matchcontroller = require('./controller')
 const { PatchCommandProcessor } = require('./controller')
-const { checkMatchPermissions, validatePatchRequest } = require('./middleware')
+const { checkBookingPermissions, validatePatchRequest } = require('./middleware')
 const MatchEventEmitter = require('./../events/MatchEmitter')
 const { authGuard } = require('../middleware/clientauth')
 const RESTError = require('./../utils/RESTError')
 const pusher = require('./../pusher/Pusher')
-const { request } = require('express')
 
 
 const router = express.Router();
@@ -91,9 +90,8 @@ router.get('/:id', authGuard, (req, res, next) => {
                next(err)
           })
      },
-     checkMatchPermissions,
+     checkBookingPermissions,
      (req, res, next) => {
-          console.log(res.locals.booking);
           res.json(res.locals.booking)
      }
 )

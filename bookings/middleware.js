@@ -1,41 +1,23 @@
 const Validator = require('jsonschema').Validator
 const { getSchema, getSupportedCommands } = require('./command')
-const { validateBooking } = require('./permissions/BookingPermissions')
+const { checkPermission } = require('./permissions/BookingPermissions')
 
-function checkMatchPermissions(req,res,next) {
+function checkBookingPermissions(req,res,next) {
 
     const booking = res.locals.booking;
 
     const permissions = ['cancel','end','move']
     
     permissions.forEach( permission => {
-        console.log("Checking",permission);
-        const errors = validateBooking( permission, booking )
+        //console.log("Checking",permission);
+        const errors = checkPermission( permission, booking )
         
-        console.log(errors)
+        //console.log(errors)
 
         if ( errors.length === 0 ){
             booking.permissions.push(permission)
         }
     });
-
-    // if( hasRemovePermission(booking))
-    //     booking.permissions.push('CAN_REMOVE')
-
-    // if( hasEndPermission(booking) )
-    //     booking.permissions.push('CAN_END')
-
-    // if( hasChangeStartPermission(booking)){
-    //     booking.permissions.push('CHANGE_START')
-    // }
-
-    // if( hasChangeEndPermission(booking)){
-    //     booking.permissions.push('CHANGE_END')
-    // }
-
-    // if( hasChangeCourtPermission(booking)){
-    //     booking.permissions.push('CHANGE_COURT')
-    // }
 
     next()
 
@@ -125,6 +107,6 @@ function validateSchema(val,schema){
 
 
 module.exports = {
-    checkMatchPermissions,
+    checkBookingPermissions,
     validatePatchRequest
 }
