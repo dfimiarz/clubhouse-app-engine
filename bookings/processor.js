@@ -39,14 +39,8 @@ async function endSession(id,cmd){
             return booking.date;
         }
         catch( err ){
-
-            try{
-                await sqlconnector.runQuery(connection,"ROLLBACK",[])
-            }
-            catch( err ){
-                throw err
-            }
             
+            await sqlconnector.runQuery(connection,"ROLLBACK",[])            
             throw err
         }
     }
@@ -75,8 +69,7 @@ async function removeSession(id,cmd){
             if( ! booking ){
                 throw new RESTError(422,"Unable to read booknig data");
             }
-
-            console.log(booking);
+            
             //Check permissions
             const errors = checkPermission('cancel', booking);
             
@@ -91,15 +84,10 @@ async function removeSession(id,cmd){
             return booking.date;
         }
         catch( err ){
+           
+            await sqlconnector.runQuery(connection,"ROLLBACK",[]);
+            throw err;
 
-            try{
-                await sqlconnector.runQuery(connection,"ROLLBACK",[])
-            }
-            catch( err ){
-                throw err
-            }
-            
-            throw err
         }
     }
     catch( err ){

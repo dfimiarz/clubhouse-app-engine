@@ -2,9 +2,9 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const { checkSchema, check, validationResult, oneOf, body } = require('express-validator')
 const matchcontroller = require('./controller')
-const { PatchCommandProcessor } = require('./controller')
+//const { PatchCommandProcessor } = require('./controller')
 const { checkBookingPermissions, validatePatchRequest } = require('./middleware')
-const MatchEventEmitter = require('./../events/MatchEmitter')
+//const MatchEventEmitter = require('./../events/MatchEmitter')
 const { authGuard } = require('../middleware/clientauth')
 const RESTError = require('./../utils/RESTError')
 const pusher = require('./../pusher/Pusher')
@@ -92,7 +92,34 @@ router.get('/:id', authGuard, (req, res, next) => {
      },
      checkBookingPermissions,
      (req, res, next) => {
-          res.json(res.locals.booking)
+
+          //Fiter out values that are needed by the front end
+          const filtered_booking = (({ start,end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players}) => {
+               return {
+               'start': start,
+               'end': end,
+               'permissions': Array.from(permissions),
+               'booking_type_desc' : booking_type_desc,
+               'date' : date,
+               'court_name' : court_name,
+               'bumpable' : bumpable,
+               'notes' : notes,
+               'id' : id,
+               'etag' : etag,
+               'players' : players.map((player) => {
+                    return {
+                         'firstname': player.firstname,
+                         'lastname': player.lastname,
+                         'player_type_desc' : player.player_type_desc
+                    }
+               })
+               }
+          }
+          )(res.locals.booking)
+
+          console.log(filtered_booking);
+
+          res.json(filtered_booking);
      }
 )
 
