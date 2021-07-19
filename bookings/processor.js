@@ -2,6 +2,7 @@ const sqlconnector = require('../db/SqlConnector')
 const RESTError = require('./../utils/RESTError');
 const { checkPermission } = require('./permissions/BookingPermissions');
 const { getBooking, insertBooking, getNewBooking,checkOverlap }  = require('./BookingUtils');
+const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -22,6 +23,7 @@ async function endSession(id,cmd){
             const booking = await getBooking(connection,id,cmd.hash);
 
             if( ! booking ){
+                cloudLog(loglevels.error,"Unable to end. Booking access error:  " + JSON.stringify({id: id, hash: cmd.hash}));
                 throw new RESTError(422,"Unable to read booknig data");
             }
 
@@ -29,12 +31,15 @@ async function endSession(id,cmd){
             const errors = checkPermission('end', booking);
             
             if ( errors.length > 0 ){
+                cloudLog(loglevels.warning,"Permission to end denied: " + JSON.stringify(errors));
                 throw new RESTError(422, "Permission to end denied: " + errors[0]);
             }
 
             await sqlconnector.runQuery(connection,update_activity_q,[booking.utc_req_time,booking.time_zone,id])
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            cloudLog(loglevels.info,"Booking ended: " + JSON.stringify(booking));
 
             return booking.date;
         }
@@ -45,7 +50,6 @@ async function endSession(id,cmd){
         }
     }
     catch( err ) {
-        console.log(err)
         throw new Error( err )
     }
     finally
@@ -67,6 +71,7 @@ async function removeSession(id,cmd){
             const booking = await getBooking(connection,id,cmd.hash);
 
             if( ! booking ){
+                cloudLog(loglevels.error,"Unable to cancel. Booking access error: " + JSON.stringify({id: id, hash: cmd.hash}));
                 throw new RESTError(422,"Unable to read booknig data");
             }
             
@@ -74,12 +79,15 @@ async function removeSession(id,cmd){
             const errors = checkPermission('cancel', booking);
             
             if ( errors.length > 0 ){
+                cloudLog(loglevels.warning,"Permission to cancel denied: " + JSON.stringify(errors));
                 throw new RESTError(422, "Permission to remove denied: " + errors[0]);
             }
 
             await sqlconnector.runQuery(connection,remove_activity_q,[id])
 
             await sqlconnector.runQuery(connection,"COMMIT",[])
+
+            cloudLog(loglevels.info,"Booking cancelled: " + JSON.stringify(booking));
 
             return booking.date;
         }
@@ -116,6 +124,7 @@ async function changeSessionTime(id,cmd){
             const booking = await getBooking(connection,id,cmd.hash);
 
             if( ! booking ){
+                cloudLog(loglevels.error,"Unable to change time. Booking access error: " + JSON.stringify({id: id, hash: cmd.hash})); 
                 throw new RESTError(422,"Unable to read booknig data");
             }
             
@@ -123,6 +132,7 @@ async function changeSessionTime(id,cmd){
             const move_errors = checkPermission('move', booking);
         
             if ( move_errors.length > 0 ){
+                cloudLog(loglevels.warning,"Unable to change time. Permission to move denied: " + JSON.stringify(move_errors));
                 throw new RESTError(422, "Permission to move denied: " + move_errors[0]);
             }
 
@@ -146,18 +156,37 @@ async function changeSessionTime(id,cmd){
              //Check permissions
              const create_errors = checkPermission('create', movedbooking);
              if (create_errors.length > 0) {
-                 throw new RESTError(422, "Create permission denied: " + create_errors[0]);
+                cloudLog(loglevels.warning,"Unable to change time. Create permission denied: " + JSON.stringify(create_errors));
+                throw new RESTError(422, "Create permission denied: " + create_errors[0]);
              }
 
              //START Check for overlapping bookings
-             const overlap = await checkOverlap(connection,movedbooking.end,movedbooking.start,movedbooking.court_id,movedbooking.date);
+             const overlapping_bookings = await checkOverlap(connection,movedbooking.end,movedbooking.start,movedbooking.court_id,movedbooking.date);
 
-             if( overlap === 1){
-                 throw new RESTError(422,"Booking overlap found.");
-             }
-             //END
+            if( overlapping_bookings.length !== 0 ){
+                const overlap_record = {
+                    booking_date: movedbooking.date,
+                    booking_start: movedbooking.start,
+                    booking_end: movedbooking.end,
+                    booking_court_id: movedbooking.court_id,
+                    overlapping_ids: Array.from(overlapping_bookings)
+                }
 
-             await insertBooking(connection,movedbooking);
+                cloudLog(loglevels.warning,`Booking overlap found while changing time: ${JSON.stringify(overlap_record)}` );
+                throw new RESTError(422,"Booking overlap found. Pick different time.");
+            }
+            //END
+
+            const insertid = await insertBooking(connection,movedbooking);
+
+            await sqlconnector.runQuery(connection,"COMMIT",[]);
+
+            const change_record = {
+                orig_id: booking.id,
+                moved_id: insertid
+            }
+
+            cloudLog(loglevels.info,`Booking time changed:`+ JSON.stringify(change_record));
 
             return movedbooking.date;
         }
@@ -193,6 +222,7 @@ async function changeCourt(id,cmd){
             const booking = await getBooking(connection,id,cmd.hash);
 
             if( ! booking ){
+                cloudLog(loglevels.error,"Unable to change court. Booking access error: " + JSON.stringify({id: id, hash: cmd.hash})); 
                 throw new RESTError(422,"Unable to read booknig data");
             }
 
@@ -200,11 +230,19 @@ async function changeCourt(id,cmd){
             const move_errors = checkPermission('move', booking);
             
             if ( move_errors.length > 0 ){
+                cloudLog(loglevels.warning,"Unable to change court. Permission to move denied: " + JSON.stringify(move_errors));
                 throw new RESTError(422, "Permission to move denied: " + move_errors[0]);
             }
         
             //Check if court is changing
             if( booking.court_id === new_court ){
+
+                const change_record = {
+                    booking_id: booking.id,
+                    court_id: booking.court_id
+                }
+
+                cloudLog(loglevels.warning,`Court has not changed: ${ JSON.stringify(change_record) } `)
                 throw new RESTError(422, "Court has not changed");
             }
 
@@ -250,24 +288,40 @@ async function changeCourt(id,cmd){
 
             const movedbooking = await getNewBooking(connection,initValues);
   
-
             //Check permissions
-            const errors = checkPermission('create', movedbooking);
-            if (errors.length > 0) {
-                throw new RESTError(422, "Create permission denied: " + errors[0]);
+            const create_errors = checkPermission('create', movedbooking);
+            if (create_errors.length > 0) {
+                cloudLog(loglevels.warning,"Unable to change court. Permission to create denied: " + JSON.stringify(create_errors));
+                throw new RESTError(422, `Create permission denied: ${ create_errors[0] } `);
             }
 
             //START Check for overlapping bookings
-            const overlap = await checkOverlap(connection,movedbooking.end,movedbooking.start,movedbooking.court_id,movedbooking.date);
+            const overlapping_bookings = await checkOverlap(connection,movedbooking.end,movedbooking.start,movedbooking.court_id,movedbooking.date);
 
-            if( overlap === 1){
-                throw new RESTError(422,"Booking overlap found. Pick a different court");
+            if( overlapping_bookings.length !== 0 ){
+                const overlap_record = {
+                    booking_date: movedbooking.date,
+                    booking_start: movedbooking.start,
+                    booking_end: movedbooking.end,
+                    booking_court_id: movedbooking.court_id,
+                    overlapping_ids: Array.from(overlapping_bookings)
+                }
+
+                cloudLog(loglevels.warning,`Booking overlap found while changing court: ${JSON.stringify(overlap_record)}` );
+                throw new RESTError(422,"Booking overlap found. Pick a different court.");
             }
             //END
 
-            await insertBooking(connection,movedbooking);
+            const insertid = await insertBooking(connection,movedbooking);
 
-            await sqlconnector.runQuery(connection,"COMMIT",[])
+            await sqlconnector.runQuery(connection,"COMMIT",[]);
+
+            const change_record = {
+                orig_id: booking.id,
+                moved_id: insertid
+            }
+
+            cloudLog(loglevels.info,`Court changed: ${JSON.stringify(change_record)}`);
 
             return movedbooking.date;
 

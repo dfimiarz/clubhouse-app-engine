@@ -1,7 +1,6 @@
 const admin = require('../firebaseadmin/firebaseadmin')
 const RESTError = require('../utils/RESTError')
-
-require('dotenv').config();
+const { cloudLog, localLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
 
 
 /**
@@ -28,6 +27,7 @@ async function checkUserAuth(req, res, next) {
             next()
         }
         catch (err) {
+            cloudLog(loglevels.error,`User token error: ${ err } `);
             next(new Error("Unable to verify auth token"));
         }
     }
@@ -79,8 +79,9 @@ function getTokenFromHeaders(req) {
  * @param {Response} res Express Response object
  * @param {next} middleware next functinon 
  */
-function authGuard(_req,res,next){
+function authGuard(req,res,next){
     if( ! (res.locals.geoauth === true || res.locals.userauth === true) ){
+        cloudLog(loglevels.error,`Not authorized. IP: ${ req.ip } `);
         next(new RESTError(401,"Not authorized"));
     }
     else{

@@ -84,7 +84,7 @@ const booking_time_q = `SELECT
                 WHERE c.id = ? and cl.id = ? FOR UPDATE`;
 
 //end,start,court,date
-const overlap_check_q = `SELECT EXISTS(
+const overlap_check_q = `
     SELECT 
     id
     FROM
@@ -94,7 +94,7 @@ const overlap_check_q = `SELECT EXISTS(
     AND ? < end
     AND court = ?
     AND date = ?
-    AND active = 1 FOR UPDATE) as session_found`;
+    AND active = 1 FOR UPDATE`;
 
 
 /**
@@ -193,6 +193,7 @@ const overlap_check_q = `SELECT EXISTS(
 
     await sqlconnector.runQuery(connection, insertPlayersQ, [playersArrays])
 
+    return activity_id;
 }
 
 /**
@@ -247,15 +248,24 @@ async function getNewBooking(connection,initValues){
 
 }
 
+/**
+ * 
+ * @param {*} connection 
+ * @param { string } end 
+ * @param { string } start 
+ * @param { number } court_id 
+ * @param { string } date 
+ * @returns { number [] }  An array of overlapping booking ids
+ */
 async function checkOverlap(connection,end,start,court_id,date){
 
     const overlap_result = await sqlconnector.runQuery(connection, overlap_check_q, [end,start,court_id,date]);
 
-    if (!(Array.isArray(overlap_result) && overlap_result.length === 1)) {
+    if (! Array.isArray(overlap_result)) {
         throw new Error("Unable to check booking overlap");
     }
 
-    return overlap_result[0].session_found === 1 ? 1: 0;
+    return overlap_result.map((res) => res.id);
 
 }
 

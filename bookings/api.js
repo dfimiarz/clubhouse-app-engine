@@ -8,6 +8,7 @@ const { checkBookingPermissions, validatePatchRequest } = require('./middleware'
 const { authGuard } = require('../middleware/clientauth')
 const RESTError = require('./../utils/RESTError')
 const pusher = require('./../pusher/Pusher')
+const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
 
 
 const router = express.Router();
@@ -52,7 +53,7 @@ router.post('/',[
      const errors = validationResult(req);
 
      if (!errors.isEmpty()) {
-          //TO DO: Add logging
+          cloudLog(loglevels.error,"Add booking validation error: " + JSON.stringify(errors.array()));
           return next(new RESTError(422, { fielderrors: errors.array({onlyFirstError: true})}))
      }
 
@@ -63,13 +64,12 @@ router.post('/',[
                pusher.trigger("bookings","booking_change",{
                     date: req.body.date
                }).catch(err => {
-                    console.log(err)
+                    cloudLog(loglevels.error,`Pusher error in post: ${err}`);
                })
                res.status(201).send()
                
           })
           .catch((err) => {
-               console.log(err)
                next(err)
           })
 
@@ -117,8 +117,6 @@ router.get('/:id', authGuard, (req, res, next) => {
           }
           )(res.locals.booking)
 
-          console.log(filtered_booking);
-
           res.json(filtered_booking);
      }
 )
@@ -132,7 +130,7 @@ router.patch('/:id', authGuard, validatePatchRequest,
                     pusher.trigger("bookings","booking_change",{
                          date: result
                     }).catch(err => {
-                         console.log(err)
+                         cloudLog(loglevels.error,`Pusher error in patch: ${err}`);
                     })
 
                     res.status(204).send()

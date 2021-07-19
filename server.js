@@ -1,5 +1,7 @@
 'use strict'
 
+require('dotenv').config();
+
 const express = require('express')
 const createError = require('http-errors')
 const cors = require('cors')
@@ -7,8 +9,7 @@ const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
 const { checkUserAuth,checkGeoAuth } = require('./middleware/clientauth')
-
-require('dotenv').config();
+const { cloudLog, localLog, cloudLogLevels : loglevels } = require('./utils/logger/logger');
 
 app.set('trust proxy', true)
 
@@ -53,11 +54,10 @@ app.use( (req,res,next) => {
 app.use( (err,req,res,next) => {
 
     if( err instanceof RESTError ){
-        res.status( err.status )
-        .json( err.payload )
+        res.status( err.status ).json( err.payload )
     } else {
-        res.status(err.status || 500 )
-        .json( err.message || 'Something went wrong' )
+        cloudLog(loglevels.error,err.message);
+        res.status(err.status || 500 ).json( err.message || 'Something went wrong' )
     }
 
 })

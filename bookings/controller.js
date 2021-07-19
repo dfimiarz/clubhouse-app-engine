@@ -5,6 +5,7 @@ const MatchCommandProcessors = require('./processor')
 const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 const RESTError = require('./../utils/RESTError');
 const { getNewBooking, insertBooking,checkOverlap } = require('./BookingUtils');
+const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -54,7 +55,7 @@ async function getBookingsForDate(date) {
     }
     catch (error) {
 
-        console.log(error)
+        cloudLog(loglevels.error,`Unable to read bookings: ${ error.message }`)
         throw new Error(error.sqlMessage)
     }
     finally {
@@ -119,23 +120,33 @@ async function addBooking(request) {
 
             initValues.players = persons_result.map((person) => ({ person_id: person.id, person_type: person.type, member_role: person.role, player_type: playerTypeMap.get(person.id) }))
 
-
             const booking = await getNewBooking(connection,initValues);
 
             if( ! booking ){
+                cloudLog(loglevels.error,"Unable to create a new booking. Values " + JSON.stringify(initValues));
                 throw new RESTError(500,"Unable to create a new booking");
             }
 
             //Check permissions
             const errors = checkPermission('create', booking);
             if (errors.length > 0) {
+                cloudLog(loglevels.error,"Booking permission denied. Booking: " + JSON.stringify(booking)+ " Error: " + errors[0]);
                 throw new RESTError(422, "Create permission denied: " + errors[0]);
             }
 
             //START Check for overlapping bookings
-            const overlap = await checkOverlap(connection,booking.end,booking.start,booking.court_id,booking.date);
+            const overlapping_bookings = await checkOverlap(connection,booking.end,booking.start,booking.court_id,booking.date);
 
-            if( overlap === 1){
+            if( overlapping_bookings.length !== 0 ){
+                const overlap_record = {
+                    booking_date: booking.date,
+                    booking_start: booking.start,
+                    booking_end: booking.end,
+                    booking_court_id: booking.court_id,
+                    overlapping_ids: Array.from(overlapping_bookings)
+                }
+
+                cloudLog(loglevels.warning,`Booking overlap found: ${JSON.stringify(overlap_record)}` );
                 throw new RESTError(422,"Booking overlap found.");
             }
             //END
@@ -143,11 +154,15 @@ async function addBooking(request) {
             await insertBooking(connection, booking );
 
             await sqlconnector.runQuery(connection, "COMMIT", []);
+
+            cloudLog(loglevels.info,`Booking added: ${JSON.stringify(booking)}`);
         }
         catch (error) {
             await sqlconnector.runQuery(connection, "ROLLBACK", []);
             throw error;
         }
+
+        
     }
     catch (error) {
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error);
@@ -242,10 +257,12 @@ async function getBookingDetails(id) {
         await sqlconnector.runQuery(connection,"COMMIT",[])
 
         if( ! (Array.isArray(booking_result) && booking_result.length === 1) ){
+            cloudLog(loglevels.error,`Booking ${id} not found` );
             throw new RESTError(404, "Booking not found");
         }
 
         if( ! Array.isArray(players_result) || players_result.length === 0 ){
+            cloudLog(loglevels.error,`Players for booking ${id} not found` );
             throw new RESTError(500, "Players not found");
         }
 
@@ -300,7 +317,6 @@ async function getBookingDetails(id) {
         return booking;
     }
     catch (error) {
-        console.log(error)
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
 
     }

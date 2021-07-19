@@ -10,7 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "ajv": "^8.4.0",
+    "@google-cloud/logging": "^9.5.4",
+    "ajv": "^8.6.2",
     "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
@@ -19,7 +20,7 @@
     "express": "^4.17.1",
     "express-rate-limit": "^5.2.6",
     "express-validator": "^6.9.2",
-    "firebase-admin": "^9.4.2",
+    "firebase-admin": "^9.11.0",
     "http-errors": "^1.8.0",
     "jsonschema": "^1.4.0",
     "moment-timezone": "^0.5.32",
@@ -27,7 +28,8 @@
     "pusher": "^5.0.0",
     "redis": "^3.1.0",
     "svg-captcha": "^1.4.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "winston": "^3.3.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.12"
