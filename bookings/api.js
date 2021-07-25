@@ -57,7 +57,6 @@ router.post('/',[
           return next(new RESTError(422, { fielderrors: errors.array({onlyFirstError: true})}))
      }
 
-
      matchcontroller.addBooking(req)
           .then((courts) => {
 
@@ -94,10 +93,13 @@ router.get('/:id', authGuard, (req, res, next) => {
      (req, res, next) => {
 
           //Fiter out values that are needed by the front end
-          const filtered_booking = (({ start,end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players}) => {
+          const filtered_booking = (({ start,end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players, utc_start,utc_end,utc_req_time}) => {
                return {
                'start': start,
                'end': end,
+               'utc_start' : utc_start,
+               'utc_end': utc_end,
+               'utc_req_time': utc_req_time,
                'permissions': Array.from(permissions),
                'booking_type_desc' : booking_type_desc,
                'date' : date,
@@ -108,6 +110,7 @@ router.get('/:id', authGuard, (req, res, next) => {
                'etag' : etag,
                'players' : players.map((player) => {
                     return {
+                         'person_id': player.person_id,
                          'firstname': player.firstname,
                          'lastname': player.lastname,
                          'player_type_desc' : player.player_type_desc
