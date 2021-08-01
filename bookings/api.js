@@ -93,7 +93,7 @@ router.get('/:id', authGuard, (req, res, next) => {
      (req, res, next) => {
 
           //Fiter out values that are needed by the front end
-          const filtered_booking = (({ start,end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players, utc_start,utc_end,utc_req_time}) => {
+          const filtered_booking = (({ start,end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players, utc_start,utc_end,utc_req_time, type}) => {
                return {
                'start': start,
                'end': end,
@@ -101,6 +101,7 @@ router.get('/:id', authGuard, (req, res, next) => {
                'utc_end': utc_end,
                'utc_req_time': utc_req_time,
                'permissions': Array.from(permissions),
+               'type' : type,
                'booking_type_desc' : booking_type_desc,
                'date' : date,
                'court_name' : court_name,

@@ -3,3 +3,4 @@ env_setup.bat
 app.yaml
 app.flexiable.yaml
 .env
+.DS_Store
