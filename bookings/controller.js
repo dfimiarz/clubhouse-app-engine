@@ -15,7 +15,7 @@ async function getBookingsForDate(date) {
 
     const connection = await sqlconnector.getConnection()
     const player_query = `select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from player p join person on person.id = p.person where p.activity in ( ? ) order by activity`
-    const activity_query = 'select id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes FROM activity where date = ? and active = 1';
+    const activity_query = 'select activity.id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes,at.desc as booking_type_desc FROM activity join activity_type at on at.id = activity.type where date = ? and active = 1';
 
     let bookings = new Map();
 
@@ -30,7 +30,7 @@ async function getBookingsForDate(date) {
         }
 
         bookings_array.forEach(element => {
-            bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [] });
+            bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [], booking_type_desc: element.booking_type_desc });
         });
 
         const booking_ids = Array.from(bookings.keys());
