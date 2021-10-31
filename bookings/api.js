@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-const { checkSchema, check, validationResult, oneOf, body } = require('express-validator')
+const { checkSchema, check, validationResult, oneOf, body, query } = require('express-validator')
 const matchcontroller = require('./controller')
 //const { PatchCommandProcessor } = require('./controller')
 const { checkBookingPermissions, validatePatchRequest } = require('./middleware')
@@ -17,7 +17,7 @@ urlEncodedParse = bodyParser.urlencoded({ extended: false })
 router.use(express.json())
 
 /**
- * Route to get all matches for day
+ * Route to get all matches for a date
  */
 router.get('/', authGuard, (req, res, next) => {
 
@@ -33,6 +33,40 @@ router.get('/', authGuard, (req, res, next) => {
           })
 
 })
+
+/**
+ *  Route to get overlapping sesion for specific date and time
+ */
+
+router.get('/overlapping',authGuard,[
+          query('date').isDate().withMessage("Invalid date"),
+          query('start').matches(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/,'i').withMessage("Invalid start"),
+          query('end').matches(/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/,'i').withMessage("Invalid end"),
+          query('court').isInt().withMessage("Invalid court")
+     ],
+     (req,res, next) => {
+
+     const errors = validationResult(req);
+
+     if (!errors.isEmpty()) {
+          cloudLog(loglevels.error,"Check Overlap parameter error: " + JSON.stringify(errors.array()));
+          return next(new RESTError(422, "Invalid query parameter"))
+     }
+
+     const date = req.query.date ? req.query.date : null;
+     const start = req.query.start ? req.query.start : null;
+     const end = req.query.end ? req.query.end : null;
+     const court = req.query.court ? req.query.court : null;
+
+     matchcontroller.getOverlappingBookings(court,date,start,end)
+          .then((bookings) => {
+               res.json(bookings);
+          })
+          .catch((err) => {
+               next(err)
+          })
+
+});
 
 router.post('/',[
           body('court').isInt().withMessage("Invalid court id"),

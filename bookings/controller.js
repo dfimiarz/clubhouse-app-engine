@@ -346,9 +346,47 @@ function processPatchCommand(id, cmd) {
 
 }
 
+/**
+ * 
+ * @param { Number } court 
+ * @param { String } date 
+ * @param { String } start 
+ * @param { String } end 
+ */
+
+async function getOverlappingBookings( court, date, start, end ){
+
+    const overlap_q = `SELECT a.id,DATE_FORMAT(date,"%Y-%m-%d" ) as date,start,end,a.court,c.name as court_name FROM activity a JOIN court c ON a.court = c.id WHERE ? > start AND ? < end AND court = ? AND date = ? AND active = 1`;
+
+    const connection = await sqlconnector.getConnection();
+
+    try {
+        const overlapping_result = await sqlconnector.runQuery(connection,overlap_q,[end,start,court,date])
+
+        return overlapping_result.map((booking) => {
+            return { 
+                id: booking["id"], 
+                date: booking["date"], 
+                start: booking["start"],
+                end: booking["end"],
+                court: booking["court"],
+                court_name: booking["court_name"]
+            }
+        })
+    }
+    catch(err){
+        throw new RESTError(500,"Error querying database");
+    }
+    finally{
+        connection.release();
+    }
+
+}
+
 module.exports = {
     addBooking,
     getBookingDetails,
     processPatchCommand,
-    getBookingsForDate
+    getBookingsForDate,
+    getOverlappingBookings
 }
