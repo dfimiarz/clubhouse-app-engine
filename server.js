@@ -8,7 +8,7 @@ const cors = require('cors')
 const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
-const { checkUserAuth,checkGeoAuth } = require('./middleware/clientauth')
+const { checkUserAuth,checkGeoAuth, checkUserRole } = require('./middleware/clientauth')
 const { cloudLog, localLog, cloudLogLevels : loglevels } = require('./utils/logger/logger');
 
 app.set('trust proxy', true)
@@ -25,7 +25,7 @@ const corsOptions = {
 app.use(compression())
 app.use(cors(corsOptions))
 
-app.use(checkGeoAuth,checkUserAuth)
+app.use(checkGeoAuth,checkUserAuth,checkUserRole)
 
 app.get('/', (req,res) => {
 

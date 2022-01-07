@@ -19,6 +19,12 @@ router.get('/geo', (req, res, next) => {
 
 })
 
+router.get('/user/profile',(req,res,next) => {
+
+    res.json({ role: res.locals.role ? res.locals.role: null, geoauth: res.locals.geoauth})
+
+})
+
 router.get('/captcha', rateLimiter.captchalimiter, async (req, res, next) => {
 
     authcontroller.getCaptcha()
