@@ -30,7 +30,10 @@ function getPool() {
     return pool
 }
 
-//Create a connection from the pool.
+/**
+ * 
+ * @returns { Promise<mysql.PoolConnection> }
+ */
 function getConnection() {
     return new Promise((resolve,reject) => {
         pool.getConnection((err,connection) => {
