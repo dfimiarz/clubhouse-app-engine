@@ -125,14 +125,14 @@ async function addGuest(request) {
     const guest_type = 2;
 
     const _firstNames = firstname.split(" ");
-    const _lastNames = lastname.split("-")
+    const _lastNames = lastname.split("-");
     
     const formattedFirstName = _firstNames.reduce((acc,val,index) => {
-            return acc + (index === 0 ? "" : " ") + val.charAt(0).toUpperCase() + val.slice(1)
+            return acc + (index === 0 ? "" : " ") + val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
         },"")
 
     const formattedLastName = _lastNames.reduce((acc,val,index) => {
-        return acc + (index === 0 ? "" : "-") + val.charAt(0).toUpperCase() + val.slice(1)
+        return acc + (index === 0 ? "" : "-") + val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
     },"")
 
     const query = "INSERT INTO `person` (`type`,`club`,`created`,`firstname`,`lastname`,`email`,`phone`,`gender`) VALUES (?,?,now(),?,?,?,?,DEFAULT)";
@@ -145,7 +145,7 @@ async function addGuest(request) {
 
     }
     catch (error) {
-
+        console.log(error)
         throw new SQLErrorFactory.getError(OPCODE, error)
     }
     finally {
