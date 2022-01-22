@@ -180,7 +180,7 @@ const overlap_check_q = `
  async function insertBooking(connection, booking) {
 
     const insertActivityQ = `INSERT INTO \`activity\` (\`id\`, \`created\`, \`updated\`, \`type\`, \`court\`, \`date\` ,\`start\`, \`end\`, \`bumpable\`,\`active\`,\`notes\`)
-    VALUES (NULL, NULL, NULL, ?, ?, ?, ?, ?, ? ,1, ?)`;
+    VALUES (NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ? ,1, ?)`;
 
     const insertPlayersQ = `INSERT INTO \`player\` VALUES ?`;
 

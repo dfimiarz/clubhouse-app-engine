@@ -3,6 +3,8 @@ const club_id = process.env.CLUB_ID;
 const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 const RESTError = require('./../utils/RESTError');
 
+const CURRENT_TIMESTAMP = { toSqlString: function() { return 'CURRENT_TIMESTAMP()'; } };
+
 /**
  * 
  * @param {Number} member Id of member
@@ -10,16 +12,22 @@ const RESTError = require('./../utils/RESTError');
  */
 async function addGuestActivationsInBulk(member, guests) {
 
-    //TO DO Move most queries to stored procedure for better performance
-
     const OPCODE = "ACTIVATE_GUESTS";
 
     if (!Array.isArray(guests)) {
         throw new RESTError(400, "Guest list error ")
     }
 
-    const member_check_q = "SELECT club FROM active_members WHERE id = ? and club = ? LOCK IN SHARE MODE";
-    const guests_check_q = "SELECT club FROM inactive_guests WHERE id in ? and club = ? LOCK IN SHARE MODE";
+    //Query to check if member is active
+    const member_check_q = "SELECT EXISTS (SELECT 1 FROM active_members WHERE id = ? and club = ? LOCK IN SHARE MODE) as 'member_found'";
+
+    //Query to check if guests are valid
+    const guests_check_q = "SELECT COUNT(*) as 'guest_count' FROM person WHERE id IN ? AND club = ? AND type = 2 LOCK IN SHARE MODE";
+
+    //Query to get all active guests for a date
+    const guests_activation_check_q = "SELECT EXISTS (SELECT guest FROM guest_activation WHERE status = 1 AND active_date = ? AND guest IN ? FOR UPDATE) as 'guest_active'";
+
+    //Query to get local date
     const club_date_q = "SELECT CAST(convert_tz(now(),@@GLOBAL.time_zone,c.time_zone)  as DATE) as local_date from club c where c.id = ? LOCK IN SHARE MODE";
 
     const connection = await sqlconnector.getConnection()
@@ -30,7 +38,7 @@ async function addGuestActivationsInBulk(member, guests) {
 
         try {
 
-            //Get club timezone
+            //Get club date
             const local_club_date_res = await sqlconnector.runQuery(connection, club_date_q, club_id);
 
             if (!Array.isArray(local_club_date_res) || local_club_date_res.length !== 1) {
@@ -39,22 +47,33 @@ async function addGuestActivationsInBulk(member, guests) {
 
             const local_club_date = local_club_date_res[0].local_date;
 
-            //Check if the member is active and belongs to club defined in .env
-            const m_club_res = await sqlconnector.runQuery(connection, member_check_q, [member, club_id]);
+            //Check if a member is active and belongs to club defined in .env
+            const m_result = await sqlconnector.runQuery(connection, member_check_q, [member, club_id]);
 
-            if (!Array.isArray(m_club_res) || m_club_res.length !== 1) {
+            if (!Array.isArray(m_result) || m_result[0].member_found !== 1) {
                 throw new RESTError(400, "Member error")
             }
 
-            //Check inactive guests belonging to the club
-            const g_clubs_res = await sqlconnector.runQuery(connection, guests_check_q, [[guests], club_id]);
+            //Check if guests belong to the club
+            const g_result = await sqlconnector.runQuery(connection, guests_check_q, [[guests], club_id]);
 
-            if (!Array.isArray(g_clubs_res) || g_clubs_res.length !== guests.length) {
+            if (!Array.isArray(g_result) || g_result[0].guest_count !== guests.length) {
                 throw new RESTError(400, "Guest list error. Reload and try again");
             }
 
+            //Check if guests are activated
+            const activations_result = await sqlconnector.runQuery(connection, guests_activation_check_q, [local_club_date,[guests]]);
+
+            if (!Array.isArray(activations_result)) {
+                throw new RESTError(400, "Error checking guest activations");
+            }
+
+            if (activations_result[0].guest_active !== 0 ) {
+                throw new RESTError(400, "A guest is already active");
+            }
+
             let guest_activations = guests.map((guest_id) => {
-                return [null, null, null, member, guest_id, local_club_date, false, 1];
+                return [null, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, member, guest_id, local_club_date, false, 1];
             });
 
             const insert_q = "insert into guest_activation values ?"
@@ -72,6 +91,7 @@ async function addGuestActivationsInBulk(member, guests) {
         }
     }
     catch (error) {
+        console.log(error);
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
     }
     finally {
