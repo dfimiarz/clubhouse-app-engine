@@ -120,7 +120,9 @@ router.post('/guests', [
      body('email').isString().trim().notEmpty().withMessage("Field cannot be empty").isEmail().withMessage("Invalid E-mail Address"),
      body('firstname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
      body('lastname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
-     body('phone').if((value) => !!value ).isMobilePhone('en-US').withMessage("Must be a valid phone number")
+     body('phone').if((value) => !!value ).isMobilePhone('en-US').withMessage("Must be a valid phone number"),
+     check('agreement').exists().isBoolean().isIn([true]).withMessage("Agreement required"),
+     check('vaccinated').exists().isBoolean().isIn([true]).withMessage("Vaccine attestation required")
 ], async (req, res, next) => {
 
      //Check if captcha is set for users that are not logged in
