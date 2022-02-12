@@ -111,12 +111,15 @@ async function getCurrentActivations() {
         a.id,
         a.created,
         MD5(a.updated) as etag,
-        concat(pm.firstname,' ',pm.lastname) as member,
+        pm.firstname as host_firstname,
+        pm.lastname as host_lastname,
         member as member_id,
-        concat(pg.firstname,' ',pg.lastname) as guest,
+        pg.firstname as guest_firstname,
+        pg.lastname as guest_lastname,
         guest as guest_id,
         a.active_date, 
-        isfamily 
+        isfamily,
+        TIME_FORMAT(getClubTime(a.created,c.time_zone),"%r") as time_activated
     from guest_activation a 
     join person pg on pg.id = a.guest
     join person pm on pm.id = a.member
@@ -167,13 +170,16 @@ async function getCurrentActivations() {
                 id: row.id, 
                 created: row.created, 
                 etag: row.etag,
-                member: row.member,
-                guest: row.guest,
+                guest_firstname: row.guest_firstname,
+                guest_lastname: row.guest_lastname,
+                host_firstname: row.host_firstname,
+                host_lastname: row.host_lastname,
                 member_id: row.member_id,
                 guest_id: row.guest_id,
                 active_date: row.active_date,
                 isfamily: row.isfamily,
-                has_played: players.has(row.guest_id) ? true : false
+                has_played: players.has(row.guest_id) ? true : false,
+                time_activated: row.time_activated
              }
             )
         );
@@ -223,13 +229,13 @@ async function deactivateGuests(activation_records) {
             return true;
         }
         catch (err) {
-
             await sqlconnector.runQuery(connection, "ROLLBACK", [])
             throw err;
         }
 
     }
     catch (error) {
+        console.log(error);
         throw error
     }
     finally {
@@ -341,7 +347,7 @@ async function __deactivateGuest(connection, id, etag) {
     }
 
     if( guestPlayed_result[0].guest_played === 1){
-        throw new Error("Cannot deactivate a guest that has already played.");
+        throw new Error("Guest has already played.");
     }
 
     await sqlconnector.runQuery(connection, updateGaQuery, [id]);

@@ -11,50 +11,56 @@ const CLUB_ID = process.env.CLUB_ID;
 
 async function getBookingsForDate(date) {
     if (date === null)
-        return []
+        return [];
 
     const connection = await sqlconnector.getConnection()
-    const player_query = `select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from player p join person on person.id = p.person where p.activity in ( ? ) order by activity`
-    const activity_query = 'select activity.id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes,at.desc as booking_type_desc FROM activity join activity_type at on at.id = activity.type where date = ? and active = 1';
+    const player_query = "select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from player p join person on person.id = p.person where p.activity in ( ? ) order by activity FOR SHARE"
+    const activity_query = `select activity.id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes,at.desc as booking_type_desc FROM activity JOIN activity_type at ON at.id = activity.type JOIN court c on c.id = activity.court JOIN club cl on c.club = cl.id where date = ? and active = 1 and cl.id = ? FOR SHARE`;
 
     let bookings = new Map();
 
     try {
 
-        await sqlconnector.runQuery(connection, "START TRANSACTION READ ONLY", [])
+        await sqlconnector.runQuery(connection, "START TRANSACTION READ ONLY", []);
 
-        let bookings_array = await sqlconnector.runQuery(connection, activity_query, [date])
+        let bookings_array = await sqlconnector.runQuery(connection, activity_query, [date,CLUB_ID]);
 
-        if (bookings_array.length === 0) {
-            return []
-        }
+        try{
 
-        bookings_array.forEach(element => {
-            bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [], booking_type_desc: element.booking_type_desc });
-        });
-
-        const booking_ids = Array.from(bookings.keys());
-
-        const players_array = await sqlconnector.runQuery(connection, player_query, [booking_ids])
-
-        await sqlconnector.runQuery(connection, "COMMIT", [])
-
-        players_array.forEach(player => {
-            const activity_id = player.activity;
-
-            if (bookings.has(activity_id)) {
-                const activity = bookings.get(activity_id);
-                bookings.delete(activity_id);
-                activity.players.push({ person_id: player.person_id, type: player.player_type, status: player.status, firstname: player.firstname, lastname: player.lastname, person_type: player.person_type })
-                bookings.set(activity_id, activity);
+            if (bookings_array.length === 0) {
+                return [];
             }
 
-        })
+            bookings_array.forEach(element => {
+                bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [], booking_type_desc: element.booking_type_desc });
+            });
 
-        return Array.from(bookings.values());
+            const booking_ids = Array.from(bookings.keys());
+
+            const players_array = await sqlconnector.runQuery(connection, player_query, [booking_ids])
+
+            await sqlconnector.runQuery(connection, "COMMIT", [])
+
+            players_array.forEach(player => {
+                const activity_id = player.activity;
+
+                if (bookings.has(activity_id)) {
+                    const activity = bookings.get(activity_id);
+                    bookings.delete(activity_id);
+                    activity.players.push({ person_id: player.person_id, type: player.player_type, status: player.status, firstname: player.firstname, lastname: player.lastname, person_type: player.person_type })
+                    bookings.set(activity_id, activity);
+                }
+
+            })
+
+            return Array.from(bookings.values());
+            
+        }
+        finally{
+            await sqlconnector.runQuery(connection, "COMMIT", [])
+        }
     }
     catch (error) {
-
         cloudLog(loglevels.error,`Unable to read bookings: ${ error.message }`)
         throw new Error(error.sqlMessage)
     }

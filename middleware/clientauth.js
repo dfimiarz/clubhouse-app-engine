@@ -1,4 +1,5 @@
-const admin = require('../firebaseadmin/firebaseadmin')
+const {getAuth} = require('firebase-admin/auth')
+const app = require('../firebaseadmin/firebaseadmin')
 const RESTError = require('../utils/RESTError')
 const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 const { getUserRole } = require('./../auth/controller');
@@ -42,10 +43,10 @@ async function checkUserAuth(req, res, next) {
     if (token) {
 
         try {
-            const decodedToken = await admin.auth().verifyIdToken(token)
+            const decodedToken = await getAuth(app).verifyIdToken(token);
             const uid = decodedToken.uid;
 
-            const user = await admin.auth().getUser(uid);
+            const user = await getAuth(app).getUser(uid);
             res.locals.username = user.email;
             res.locals.userauth = true;
 

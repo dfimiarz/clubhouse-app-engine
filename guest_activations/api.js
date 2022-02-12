@@ -5,7 +5,6 @@ const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
 const { authGuard } = require('../middleware/clientauth')
 const { validateCommand, validateCommandParams } = require('../utils/PatchCommandValidator');
-const { auth } = require('firebase-admin');
 
 const router = express.Router();
 
