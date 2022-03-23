@@ -50,15 +50,15 @@ const player_q = `SELECT
                         p.lastname,
                         p.type as person_type_id, 
                         pert.lbl as person_type_lbl, 
-                        player.type as player_type, 
+                        participant.type as player_type, 
                         pt.lbl as player_type_lbl,
                         pt.desc as player_type_desc
                 FROM
-                    player
+                    participant
                         JOIN
-                    person p ON p.id = player.person
+                    person p ON p.id = participant.person
                         JOIN
-                    player_type pt ON pt.id = player.type
+                    participant_type pt ON pt.id = participant.type
                         JOIN
                     person_type pert ON pert.id = p.type
                 WHERE 
@@ -182,7 +182,7 @@ const overlap_check_q = `
     const insertActivityQ = `INSERT INTO \`activity\` (\`id\`, \`created\`, \`updated\`, \`type\`, \`court\`, \`date\` ,\`start\`, \`end\`, \`bumpable\`,\`active\`,\`notes\`)
     VALUES (NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ? ,1, ?)`;
 
-    const insertPlayersQ = `INSERT INTO \`player\` VALUES ?`;
+    const insertPlayersQ = "INSERT INTO participant VALUES ?";
 
     const activity_result = await sqlconnector.runQuery(connection, insertActivityQ, [booking.type, booking.court_id, booking.date, booking.start, booking.end, booking.bumpable, booking.notes])
 

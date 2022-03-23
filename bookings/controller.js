@@ -14,7 +14,7 @@ async function getBookingsForDate(date) {
         return [];
 
     const connection = await sqlconnector.getConnection()
-    const player_query = "select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from player p join person on person.id = p.person where p.activity in ( ? ) order by activity FOR SHARE"
+    const player_query = "select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from participant p join person on person.id = p.person where p.activity in ( ? ) order by activity FOR SHARE"
     const activity_query = `select activity.id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes,at.desc as booking_type_desc FROM activity JOIN activity_type at ON at.id = activity.type JOIN court c on c.id = activity.court JOIN club cl on c.club = cl.id where date = ? and active = 1 and cl.id = ? FOR SHARE`;
 
     let bookings = new Map();
@@ -235,15 +235,15 @@ async function getBookingDetails(id) {
                     p.lastname,
                     p.type as person_type_id, 
                     pert.lbl as person_type_lbl, 
-                    player.type as player_type, 
+                    participant.type as player_type, 
                     pt.lbl as player_type_lbl,
                     pt.desc as player_type_desc
                 FROM
-                    player
+                    participant
                         JOIN
-                    person p ON p.id = player.person
+                    person p ON p.id = participant.person
                         JOIN
-                    player_type pt ON pt.id = player.type
+                    participant_type pt ON pt.id = participant.type
                         JOIN
                     person_type pert ON pert.id = p.type
                 WHERE 

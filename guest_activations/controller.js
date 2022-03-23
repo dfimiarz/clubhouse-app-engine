@@ -131,8 +131,8 @@ async function getCurrentActivations() {
     `;
 
     const players_Query = `
-        select person from player 
-        where player.activity in 
+        select person from participant
+        where participant.activity in 
             (SELECT 
                 a.id FROM clubhouse.activity a 
                 join court c on c.id = a.court 
@@ -311,7 +311,7 @@ async function __deactivateGuest(connection, id, etag) {
     `
 
     const guestPlayedQuery = `
-        SELECT EXISTS( SELECT a.id FROM activity a JOIN player p ON p.activity = a.id WHERE p.person = ? AND a.date = ? AND a.active = 1 LOCK IN SHARE MODE) as guest_played;
+        SELECT EXISTS( SELECT a.id FROM activity a JOIN participant p ON p.activity = a.id WHERE p.person = ? AND a.date = ? AND a.active = 1 LOCK IN SHARE MODE) as guest_played;
     `
 
     const updateGaQuery = `
