@@ -171,6 +171,7 @@ async function addBooking(request) {
         
     }
     catch (error) {
+        console.log(error);
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error);
     }
     finally {
@@ -260,7 +261,7 @@ async function getBookingDetails(id) {
         const booking_result = await sqlconnector.runQuery(connection,booking_q,[id,CLUB_ID])
         const players_result = await sqlconnector.runQuery(connection,player_q,[id])
 
-        await sqlconnector.runQuery(connection,"COMMIT",[])
+        await sqlconnector.runQuery(connection,"COMMIT",[]);
 
         if( ! (Array.isArray(booking_result) && booking_result.length === 1) ){
             cloudLog(loglevels.error,`Booking ${id} not found` );

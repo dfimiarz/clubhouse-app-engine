@@ -5,6 +5,7 @@ const RESTError = require('./../utils/RESTError');
 const sqlconnector = require('../db/SqlConnector');
 
 const EXP_TIME = 120; //Capcha expired in 120 seconds
+const ROLE_AUTHENTICATED = 1000;
 
 /**
  * 
@@ -43,7 +44,7 @@ async function verifyCaptcha(requestid,text){
 async function getUserRole(username,club_id){
 
     if( ! username ){
-        return null
+        return null;
     }
 
     //set up connection and query
@@ -59,13 +60,14 @@ async function getUserRole(username,club_id){
             throw new Error("Unexpected Result");
         }
 
-        return role_result.lenght === 1 ? role_result[0].id : null; 
+        return role_result.length === 1 ? role_result[0].id : null; 
+        
     }
     catch (error) {
         throw error
     }
     finally {
-        connection.release()
+        connection.release();
     }
 
 
