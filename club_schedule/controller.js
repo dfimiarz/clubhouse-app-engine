@@ -18,11 +18,7 @@ async function getClubSchedules() {
                                     DATE_FORMAT(\`from\`,"%Y-%m-%d") as \`from\`,
                                     DATE_FORMAT(\`to\`,"%Y-%m-%d") as \`to\`,
                                     UNIX_TIMESTAMP(CONVERT_TZ(\`from\`,c.time_zone,@@GLOBAL.time_zone)) AS from_ms,
-                                    UNIX_TIMESTAMP(CONVERT_TZ(\`to\`,c.time_zone,@@GLOBAL.time_zone)) AS to_ms,
-                                    default_open,
-                                    default_close,
-                                    time_to_sec(default_open) DIV 60 as default_open_min,
-                                    time_to_sec(default_close) DIV 60 as default_close_min
+                                    UNIX_TIMESTAMP(CONVERT_TZ(\`to\`,c.time_zone,@@GLOBAL.time_zone)) AS to_ms
                                 FROM 
                                     club_schedule cs
                                 JOIN club c on c.id = cs.club
@@ -35,7 +31,10 @@ async function getClubSchedules() {
                                     court,
                                     dayofweek,
                                     open,
-                                    close
+                                    close,
+                                    time_to_sec(open) DIV 60 as open_min,
+                                    time_to_sec(close) DIV 60 as close_min,
+                                    message
                                 FROM
                                     court_schedule_item
                                 WHERE court in (SELECT id FROM court where club = ?)
@@ -59,10 +58,7 @@ async function getClubSchedules() {
                 from_ms: schedule["from_ms"],
                 to: schedule["to"],
                 to_ms: schedule["to_ms"],
-                default_open: schedule["default_open"],
-                default_close: schedule["default_close"],
-                default_open_min: schedule["default_open_min"],
-                default_close_min: schedule["default_close_min"],
+                message: schedule["message"],
                 items: item_result.filter((item) => item.schedule === schedule["id"])
             }
         });
@@ -70,6 +66,7 @@ async function getClubSchedules() {
 
     }
     catch (error) {
+        console.log(error)
         //TO DO: Add logging
         throw new RESTError(500, "Failed fetching club schedules");
     }
