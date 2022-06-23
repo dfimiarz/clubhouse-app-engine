@@ -38,6 +38,7 @@ async function getClubSchedules() {
                                 FROM
                                     court_schedule_item
                                 WHERE court in (SELECT id FROM court where club = ?)
+                                ORDER BY court,open
                                 FOR SHARE`;
 
     try {
