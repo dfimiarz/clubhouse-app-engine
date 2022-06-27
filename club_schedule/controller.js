@@ -86,6 +86,8 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
             closedCourts.delete(timeframe.court);
         }
 
+        //console.log("Before",closed_time_frames, last_close_min,last_court)
+
         //Is last court different from current court?
         if (last_court !== timeframe.court) {
             /*If last court not null and calEndHour > last_close_min,
@@ -107,10 +109,12 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
                 start: last_close_min,
                 end: timeframe.open_min,
             });
-
-            last_close_min = timeframe.close_min;
-            last_court = timeframe.court;
         }
+
+        last_close_min = timeframe.close_min;
+        last_court = timeframe.court;
+
+        //console.log("After",closed_time_frames, last_close_min,last_court)
     });
 
     /* Loop through all inactive courts and add inactive time frames
