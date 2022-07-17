@@ -2,7 +2,7 @@ const sqlconnector = require('../db/SqlConnector');
 
 const CLUB_ID = process.env.CLUB_ID;
 
-const booking_q =  `SELECT c.id AS court_id,
+const booking_q = `SELECT c.id AS court_id,
                         UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.start),cl.time_zone,@@GLOBAL.time_zone)) AS utc_start,
                         UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.end),cl.time_zone,@@GLOBAL.time_zone)) AS utc_end,
                         UNIX_TIMESTAMP(a.created) AS utc_created,
@@ -65,23 +65,35 @@ const player_q = `SELECT
                     activity = ?
                 FOR UPDATE`;
 
-const booking_time_q = `SELECT
-                c.id as court_id,
-                UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_start, 
-                UNIX_TIMESTAMP(convert_tz(concat(?,' ',?),cl.time_zone,@@GLOBAL.time_zone )) as utc_end,
-                UNIX_TIMESTAMP(convert_tz(?,cl.time_zone,@@GLOBAL.time_zone )) as utc_day_start,
-                UNIX_TIMESTAMP(now()) as utc_req_time,
-                CAST(convert_tz(now(),@@GLOBAL.time_zone,cl.time_zone) as DATE) + 0 as loc_req_date,
-                CAST(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, cl.time_zone) AS TIME) AS loc_req_time,
-                CAST(? as DATE) + 0 as numeric_date,
-                c.openmin as court_openmin,
-                c.closemin as court_closemin,
-                c.state as court_state,
-                cl.time_zone,
-                cl.id as club_id
-                FROM court c 
-                JOIN club cl ON cl.id = c.club
-                WHERE c.id = ? and cl.id = ? FOR UPDATE`;
+                
+
+const booking_time_q = `SELECT 
+                            UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(?,' ',?),time_zone,@@GLOBAL.time_zone)) DIV 1 AS utc_start,
+                            UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(?,' ',?),time_zone,@@GLOBAL.time_zone)) DIV 1 AS utc_end,
+                            UNIX_TIMESTAMP(CONVERT_TZ(?,time_zone,@@GLOBAL.time_zone)) DIV 1 AS utc_day_start,
+                            UNIX_TIMESTAMP(NOW()) AS utc_req_time,
+                            CAST(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, time_zone) AS DATE) + 0 AS loc_req_date,
+                            CAST(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, time_zone) AS TIME) AS loc_req_time,
+                            CAST(? AS DATE) + 0 AS numeric_date,
+                            time_zone,
+                            s.id AS schedule_id
+                        FROM
+                            club
+                        LEFT JOIN
+                            (SELECT 
+                                csi.id, cs.club
+                            FROM
+                                club_schedule cs
+                            JOIN court_schedule_item csi ON csi.schedule = cs.id
+                            WHERE
+                                cs.club = ?
+                                    AND ? BETWEEN cs.from AND cs.to
+                                    AND csi.dayofweek = DAYOFWEEK(?)
+                                    AND ? >= csi.open
+                                    AND close >= ?
+                                    AND csi.court = ?) AS s ON s.club = club.id
+                            WHERE
+                                club.id = ?`;
 
 //end,start,court,date
 const overlap_check_q = `
@@ -105,11 +117,11 @@ const overlap_check_q = `
  * 
  * This function must run within a transaction
  */
- async function getBooking(connection,id,etag ){
+async function getBooking(connection, id, etag) {
 
-    const booking_result = await sqlconnector.runQuery(connection,booking_q,[id,CLUB_ID,etag]);
-    const players_result = await sqlconnector.runQuery(connection,player_q,[id]);
-    
+    const booking_result = await sqlconnector.runQuery(connection, booking_q, [id, CLUB_ID, etag]);
+    const players_result = await sqlconnector.runQuery(connection, player_q, [id]);
+
     if (!(Array.isArray(booking_result) && booking_result.length === 1)) {
         return null;
     }
@@ -177,7 +189,7 @@ const overlap_check_q = `
  * 
  * This function does the actual insert to the datbase. Must be called within a transaction.
  */
- async function insertBooking(connection, booking) {
+async function insertBooking(connection, booking) {
 
     const insertActivityQ = `INSERT INTO \`activity\` (\`id\`, \`created\`, \`updated\`, \`type\`, \`court\`, \`date\` ,\`start\`, \`end\`, \`bumpable\`,\`active\`,\`notes\`)
     VALUES (NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ? ,1, ?)`;
@@ -203,9 +215,9 @@ const overlap_check_q = `
  * 
  * Get a fresh booking. Must be run within a transaction
  */
-async function getNewBooking(connection,initValues){
+async function getNewBooking(connection, initValues) {
 
-    if( ! initValues ){
+    if (!initValues) {
         return null
     }
 
@@ -224,27 +236,24 @@ async function getNewBooking(connection,initValues){
         etag: null
     }
 
-     let bookingtime_result = await sqlconnector.runQuery(connection, booking_time_q, [booking.date, booking.start, booking.date, booking.end, booking.date, booking.date, booking.court_id, CLUB_ID])
+    let bookingtime_result = await sqlconnector.runQuery(connection, booking_time_q, [booking.date, booking.start, booking.date, booking.end, booking.date, booking.date, CLUB_ID , booking.date, booking.date, booking.start, booking.end,  booking.court_id, CLUB_ID])
 
-     if (bookingtime_result.length !== 1) {
+    if (bookingtime_result.length !== 1) {
         return null
-     }
+    }
 
-     booking.numeric_date = bookingtime_result[0].numeric_date;
-     booking.utc_start = bookingtime_result[0].utc_start;
-     booking.utc_end = bookingtime_result[0].utc_end;
-     booking.utc_day_start = bookingtime_result[0].utc_day_start;
-     booking.utc_req_time = bookingtime_result[0].utc_req_time;
-     booking.loc_req_date = bookingtime_result[0].loc_req_date;
-     booking.loc_req_time = bookingtime_result[0].loc_req_time;
-     booking.court_open = bookingtime_result[0].court_openmin;
-     booking.court_closed = bookingtime_result[0].court_closemin;
-     booking.court_state = bookingtime_result[0].court_state;
-     booking.time_zone = bookingtime_result[0].time_zone;
-     booking.club_id = bookingtime_result[0].club_id;
-     
-    
-     return booking;
+    booking.numeric_date = bookingtime_result[0].numeric_date;
+    booking.utc_start = bookingtime_result[0].utc_start;
+    booking.utc_end = bookingtime_result[0].utc_end;
+    booking.utc_day_start = bookingtime_result[0].utc_day_start;
+    booking.utc_req_time = bookingtime_result[0].utc_req_time;
+    booking.loc_req_date = bookingtime_result[0].loc_req_date;
+    booking.loc_req_time = bookingtime_result[0].loc_req_time;
+    booking.time_zone = bookingtime_result[0].time_zone;
+    booking.schedule_id = bookingtime_result[0].schedule_id;
+
+
+    return booking;
 
 }
 
@@ -257,11 +266,11 @@ async function getNewBooking(connection,initValues){
  * @param { string } date 
  * @returns { number [] }  An array of overlapping booking ids
  */
-async function checkOverlap(connection,end,start,court_id,date){
+async function checkOverlap(connection, end, start, court_id, date) {
 
-    const overlap_result = await sqlconnector.runQuery(connection, overlap_check_q, [end,start,court_id,date]);
+    const overlap_result = await sqlconnector.runQuery(connection, overlap_check_q, [end, start, court_id, date]);
 
-    if (! Array.isArray(overlap_result)) {
+    if (!Array.isArray(overlap_result)) {
         throw new Error("Unable to check booking overlap");
     }
 

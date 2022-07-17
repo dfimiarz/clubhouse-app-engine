@@ -6,6 +6,7 @@ const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 const RESTError = require('./../utils/RESTError');
 const { getNewBooking, insertBooking,checkOverlap } = require('./BookingUtils');
 const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
+const { default: MissingRefError } = require('ajv/dist/compile/ref_error');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -15,7 +16,38 @@ async function getBookingsForDate(date) {
 
     const connection = await sqlconnector.getConnection()
     const player_query = "select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from participant p join person on person.id = p.person where p.activity in ( ? ) order by activity FOR SHARE"
-    const activity_query = `select activity.id,court,bumpable,DATE_FORMAT(date,"%Y-%m-%d") as date,end,start,type,created,updated,notes,at.desc as booking_type_desc FROM activity JOIN activity_type at ON at.id = activity.type JOIN court c on c.id = activity.court JOIN club cl on c.club = cl.id where date = ? and active = 1 and cl.id = ? FOR SHARE`;
+    
+    const activity_query = `SELECT 
+                                activity.id,
+                                court,
+                                bumpable,
+                                DATE_FORMAT(date, '%Y-%m-%d') AS date,
+                                end,
+                                start,
+                                TIME_TO_SEC(start) DIV 60 AS start_min,
+                                TIME_TO_SEC(end) DIV 60 AS end_min,
+                                type,
+                                created,
+                                updated,
+                                notes,
+                                at.desc AS booking_type_desc,
+                                at.group AS group_id,
+                                ag.utility_factor AS utility 
+                            FROM
+                                activity
+                                    JOIN
+                                activity_type at ON at.id = activity.type
+                                    JOIN
+                                activity_group ag ON at.group = ag.id
+                                    JOIN
+                                court c ON c.id = activity.court
+                                    JOIN
+                                club cl ON c.club = cl.id
+                            WHERE
+                                date = ?
+                                AND active = 1
+                                AND cl.id = ? 
+                            FOR SHARE`;
 
     let bookings = new Map();
 
@@ -32,7 +64,7 @@ async function getBookingsForDate(date) {
             }
 
             bookings_array.forEach(element => {
-                bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [], booking_type_desc: element.booking_type_desc });
+                bookings.set(element.id, { id: element.id, court: element.court, bumpable: element.bumpable, date: element.date, end: element.end, start: element.start, start_min: element.start_min, end_min: element.end_min , type: element.type, notes: element.notes, updated: element.updated, created: element.created, players: [], booking_type_desc: element.booking_type_desc, group_id: element.group_id, utility: element.utility });
             });
 
             const booking_ids = Array.from(bookings.keys());
@@ -135,6 +167,7 @@ async function addBooking(request) {
 
             //Check permissions
             const errors = checkPermission('create', booking);
+            
             if (errors.length > 0) {
                 cloudLog(loglevels.error,"Booking permission denied. Booking: " + JSON.stringify(booking)+ " Error: " + errors[0]);
                 throw new RESTError(422, "Create permission denied: " + errors[0]);
