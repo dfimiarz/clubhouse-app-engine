@@ -25,9 +25,6 @@ const booking_q = `SELECT c.id AS court_id,
                         a.notes,
                         a.id,
                         MD5(a.updated) AS etag,
-                        c.openmin AS court_open,
-                        c.closemin AS court_close,
-                        c.state AS court_state,
                         c.name as court_name,
                         cl.time_zone,
                         cl.id as club_id
@@ -35,7 +32,7 @@ const booking_q = `SELECT c.id AS court_id,
                         activity a
                             JOIN
                         court c ON a.court = c.id
-                            JOIN
+                            JOINs
                         club cl ON cl.id = c.club
                             JOIN
                         activity_type at ON at.id = a.type
@@ -154,9 +151,6 @@ async function getBooking(connection, id, etag) {
         notes: booking_result[0]['notes'],
         etag: booking_result[0]['etag'],
         court_id: booking_result[0]['court_id'],
-        court_open: booking_result[0]['court_open'],
-        court_close: booking_result[0]['court_close'],
-        court_state: booking_result[0]['court_state'],
         court_name: booking_result[0]['court_name'],
         time_zone: booking_result[0]['time_zone'],
         club_id: booking_result[0]['club_id'],

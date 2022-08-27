@@ -4,3 +4,6 @@ app.yaml
 app.flexiable.yaml
 .env
 .DS_Store
+/cred/service_account_file.json
+.firebaserc
+ui-debug.log
