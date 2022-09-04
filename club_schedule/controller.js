@@ -1,5 +1,7 @@
 const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
+const { getClient } = require('./../db/RedisConnector')
+const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -112,7 +114,7 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
 
         last_close_min = timeframe.close_min;
         last_court = timeframe.court;
-        
+
     });
 
     /**
@@ -143,12 +145,28 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
     return closed_time_frames;
 }
 
-
 /**
  * Retrieves a list of club schedules for a given club_id
  */
 async function getClubSchedules() {
 
+    //Check redis cache
+    const client = getClient();
+
+    const redisKey = `club_schedules_${CLUB_ID}`;
+
+    try {
+        const redisData = await client.json.get(redisKey);
+
+        if (redisData) {
+            return JSON.parse(redisData);
+        }
+    }
+    catch (err) {
+        cloudLog(loglevels.warning, `Error retrieving club schedules from redis: ${err}`);
+    }
+    
+    
 
     const connection = await sqlconnector.getConnection();
 
@@ -198,7 +216,7 @@ async function getClubSchedules() {
         //Extract court ids into a set;
         const courts = courts_results.map((court_result) => court_result.id);
 
-        return schedules_result.map((schedule) => {
+        const result = schedules_result.map((schedule) => {
 
             /**
              * Holds open time frames for each day of a week
@@ -242,11 +260,20 @@ async function getClubSchedules() {
             }
         });
 
+        //Save to redis
+        try {
+            await client.json.set(redisKey, JSON.stringify(result));
+        }
+        catch (err) {
+            cloudLog(loglevels.warning, `Error saving club schedules to redis: ${err}`);
+        }
+
+        return result;
+
 
     }
     catch (error) {
-        console.log(error)
-        //TO DO: Add logging
+        cloudLog(loglevels.error, `Error retrieving club schedules: ${error}`);
         throw new RESTError(500, "Failed fetching club schedules");
     }
     finally {
