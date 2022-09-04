@@ -5,6 +5,30 @@ const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/lo
 const { getUserRole } = require('./../auth/controller');
 const club_id = process.env.CLUB_ID;
 
+/**
+ * 
+ * @param {number|Array.<number>} roles A role id as a number or an array of role ids
+ * 
+ * @returns {function} Express middleware function
+ */
+function roleGuard(roles = []) { 
+
+    //check if roles is a number
+    if (typeof roles === 'number') {
+        roles = [roles];
+    }   
+
+    return function (req, res, next) {
+
+        //check if user has the required role
+        if (!roles.includes(res.locals.role)) {
+            return next(new RESTError(401, "Role not authorized"));
+        }
+
+        next();
+    }
+
+}
 
 /**
  * 
@@ -115,4 +139,4 @@ function authGuard(req, res, next) {
     }
 }
 
-module.exports = { checkUserAuth, checkGeoAuth, authGuard, checkUserRole }
+module.exports = { checkUserAuth, checkGeoAuth, authGuard, checkUserRole, roleGuard }
