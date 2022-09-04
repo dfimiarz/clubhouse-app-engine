@@ -10,19 +10,20 @@ const CLUB_ID = process.env.CLUB_ID;
  * @param {Map<Number,Object>} calTimesDayMap 
  * @returns 
  */
-function getClosedTimeFrames(courts, openTimeFramesDayMap, calTimesDayMap ) {
+function getClosedTimeFrames(courts, openTimeFramesDayMap, calTimesDayMap) {
     /**
      * Loop through all days of week and find inactive_time_frames
      */
     return [1, 2, 3, 4, 5, 6, 7].reduce((prev_array, day) => {
 
         const daily_open_time_frames = openTimeFramesDayMap.get(day);
-        const {calStartMin,calEndMin} = calTimesDayMap.get(day);
+        const { calStartMin, calEndMin } = calTimesDayMap.get(day);
 
         prev_array.push({
             dayofweek: day,
             time_frames: getClosedTimeFramesForDay(courts, daily_open_time_frames, calStartMin, calEndMin)
         });
+
         return prev_array;
     }, [])
 
@@ -40,7 +41,7 @@ function getCalStartMin(items, ds, de) {
     /**
      * Not itmes return ds, otherwise loop through sorted array and find the first start time
      */
-    return items.length === 0 ? ds : items.reduce((prev, curr) => (curr.open_min <= prev ? curr.open_min : prev),de);
+    return items.length === 0 ? ds : items.reduce((prev, curr) => (curr.open_min <= prev ? curr.open_min : prev), de);
 }
 
 /**
@@ -54,7 +55,7 @@ function getCalEndMin(items, ds, de) {
     /**
      * Not itmes return de, otherwise loop through sorted array and find the last end time
      */
-    return items.length == 0 ? de : items.reduce((prev, curr) => (curr.close_min >= prev ? curr.close_min : prev),ds);
+    return items.length == 0 ? de : items.reduce((prev, curr) => (curr.close_min >= prev ? curr.close_min : prev), ds);
 }
 
 /**
@@ -65,7 +66,7 @@ function getCalEndMin(items, ds, de) {
  * @param {Number} calendar_end_min Calendar end min
  * @returns Object[] An array of closed timeframes
  */
-function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, calendar_end_min ) {
+function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, calendar_end_min) {
 
     const calStartHour = Math.floor(calendar_start_min / 60);
 
@@ -85,8 +86,6 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
             //If so remove court from inactive court set
             closedCourts.delete(timeframe.court);
         }
-
-        //console.log("Before",closed_time_frames, last_close_min,last_court)
 
         //Is last court different from current court?
         if (last_court !== timeframe.court) {
@@ -113,9 +112,20 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
 
         last_close_min = timeframe.close_min;
         last_court = timeframe.court;
-
-        //console.log("After",closed_time_frames, last_close_min,last_court)
+        
     });
+
+    /**
+     * At the end, check if there if there is one more closed_time_frame left after 
+     * the last open session
+     */
+    if (last_close_min < calEndHour * 60) {
+        closed_time_frames.push({
+            court_id: last_court,
+            start: last_close_min,
+            end: calEndHour * 60,
+        });
+    }
 
     /* Loop through all inactive courts and add inactive time frames
      * between calStartHour and calEndHour
@@ -127,6 +137,8 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
             end: calEndHour * 60,
         });
     });
+
+    console.log(calStartHour, calEndHour, open_sessions, closed_time_frames);
 
     return closed_time_frames;
 }
@@ -206,7 +218,7 @@ async function getClubSchedules() {
                 const calStartMin = getCalStartMin(timeframes, schedule["default_start_min"], schedule["default_end_min"]);
                 const calEndMin = getCalEndMin(timeframes, schedule["default_start_min"], schedule["default_end_min"]);
                 openTimeFramesDayMap.set(day, timeframes);
-                calTimesDayMap.set(day,{calStartMin: calStartMin, calEndMin: calEndMin});
+                calTimesDayMap.set(day, { calStartMin: calStartMin, calEndMin: calEndMin });
             })
 
             const closed_time_frames = getClosedTimeFrames(courts, openTimeFramesDayMap, calTimesDayMap);
@@ -223,10 +235,10 @@ async function getClubSchedules() {
                 default_end_min: schedule["default_end_min"],
                 open_time_frames: open_time_frames,
                 closed_time_frames: closed_time_frames,
-                calTimes: Array.from(calTimesDayMap).reduce((array,[day,times]) => {
-                    array.push({dayofweek:day,calStartMin: times.calStartMin, calEndMin: times.calEndMin})
+                calTimes: Array.from(calTimesDayMap).reduce((array, [day, times]) => {
+                    array.push({ dayofweek: day, calStartMin: times.calStartMin, calEndMin: times.calEndMin })
                     return array;
-                },[])
+                }, [])
             }
         });
 
