@@ -49,8 +49,44 @@ try {
   console.log(err);
 }
 
+/**
+ * Get redis connection
+ */
 async function connect() {
   await client.connect();
+}
+
+/**
+ *  Get a value from redis
+ * @param {string} key
+ * @returns {Object} value
+ * */
+async function getJSON(key) {
+
+  try {
+    const redisData = await client.json.get(key);
+    return JSON.parse(redisData);
+  }
+  catch (err) {
+    cloudLog(loglevels.warning, `Error getting info from redis: ${err}`);
+  }
+
+}
+
+/**
+ * Store a value in redis
+ * @param {String} key Key to set
+ * @param {Object} data Data to set
+ */
+async function storeJSON(key, data) {
+
+  try {
+    await client.json.set(key, '.', JSON.stringify(data));
+  }
+  catch (err) {
+    cloudLog(loglevels.warning, `Error saving value to redis: ${err}`);
+  }
+
 }
 
 /**
@@ -62,5 +98,5 @@ function getClient() {
 }
 
 module.exports = {
-  getClient
+  getClient, storeJSON, getJSON
 }

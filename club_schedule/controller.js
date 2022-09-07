@@ -1,6 +1,6 @@
 const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
-const { getClient } = require('./../db/RedisConnector')
+const { getJSON, storeJSON } = require('./../db/RedisConnector')
 const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
@@ -151,22 +151,13 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
 async function getClubSchedules() {
 
     //Check redis cache
-    const client = getClient();
-
     const redisKey = `club_schedules_${CLUB_ID}`;
 
-    try {
-        const redisData = await client.json.get(redisKey);
+    const redisData = await getJSON(redisKey);
 
-        if (redisData) {
-            return JSON.parse(redisData);
-        }
+    if (redisData) {
+        return redisData;
     }
-    catch (err) {
-        cloudLog(loglevels.warning, `Error retrieving club schedules from redis: ${err}`);
-    }
-    
-    
 
     const connection = await sqlconnector.getConnection();
 
@@ -260,13 +251,8 @@ async function getClubSchedules() {
             }
         });
 
-        //Save to redis
-        try {
-            await client.json.set(redisKey, JSON.stringify(result));
-        }
-        catch (err) {
-            cloudLog(loglevels.warning, `Error saving club schedules to redis: ${err}`);
-        }
+        //store to redis
+        await storeJSON(redisKey, result);
 
         return result;
 
