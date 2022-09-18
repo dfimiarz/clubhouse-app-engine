@@ -6,6 +6,8 @@ const { query } = require('express-validator')
 
 const router = express.Router();
 
+// TODO - remove all bodyParser.json() and replace with express.json()
+
 urlEncodedParse = bodyParser.urlencoded({ extended: false })
 router.use(bodyParser.json())
 

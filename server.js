@@ -46,8 +46,9 @@ app.use('/persons', require('./persons/api'))
 app.use('/auth', require('./auth/api'))
 app.use('/guest_activations', require('./guest_activations/api'))
 app.use('/booking_types', require('./booking_types/api'))
-app.use('/club_schedule', require('./club_schedule/api'))
+app.use('/club_schedule', require('./club_schedule/api.js'))
 app.use('/club', require('./club/api'))
+app.use('/reports', require('./reports/api'))
 
 app.use( (req,res,next) => {
     next(createError(404))

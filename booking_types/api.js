@@ -1,13 +1,11 @@
 const express = require('express')
-const bodyParser = require('body-parser')
 const { check, validationResult } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
 
 const router = express.Router();
 
-urlEncodedParse = bodyParser.urlencoded({ extended: false })
-router.use(bodyParser.json())
+router.use(express.json());
 
 /**
  * Route to get all nestboxes

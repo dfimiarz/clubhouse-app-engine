@@ -6,7 +6,7 @@ const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/lo
 const CLUB_ID = process.env.CLUB_ID;
 
 /**
- * Retrieves a list of club schedules for a given club_id
+ * Retrieves club information for a given club_id
  */
 async function getClubInfo() {
 
