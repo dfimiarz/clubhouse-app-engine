@@ -14,12 +14,13 @@ const RESTError = require('./../utils/RESTError');
  *  - {string} type Report type  
  *  
  */
-timePlayedProcessor = async (name, from, to) => {
+playerStatsProcessor = async (name, from, to) => {
 
     const time_played_q =
         `select 
         DATE_FORMAT(a.date,GET_FORMAT(DATE,'ISO')) as date,
-        sum(round((time_to_sec(a.end)-time_to_sec(a.start))/60,2)) as value 
+        sum(round((time_to_sec(a.end)-time_to_sec(a.start))/60,2)) as time_played,
+        count(distinct(p.person)) as player_count
     from 
         participant p 
         join activity a on p.activity = a.id 
@@ -42,15 +43,15 @@ timePlayedProcessor = async (name, from, to) => {
         }
 
         //get dates between from and to in a map
-        const resultMap = getDateMap(from, to);
+        const resultMap = getDateMap(from, to, {time_played: 0, player_count: 0});
 
         //put data in stats map
         result.forEach(row => {
-            resultMap.set(row.date, row.value);
+            resultMap.set(row.date, { time_played: row.time_played, player_count: row.player_count });
         });
 
         //return sorted stats as an array
-        return Array.from(resultMap, ([date, value]) => ({ date, value }));
+        return Array.from(resultMap, ([date, value]) => ({ date: date, time_played: value.time_played, player_count: value.player_count }));
 
     } catch (err) {
         cloudLog(loglevels.error, `Error generating report '${name}': ${err.message}`);
@@ -59,55 +60,6 @@ timePlayedProcessor = async (name, from, to) => {
     } finally {
         connection.release();
     }
-
-}
-
-playerCountsProcessor = async (name, from, to) => {
-
-    const player_counts_q =
-        `select 
-            DATE_FORMAT(a.date,GET_FORMAT(DATE,'ISO')) as date, 
-            count(distinct(person)) as value 
-        from 
-            participant p join 
-            activity a on p.activity = a.id join 
-            activity_type at on at.id = a.type join 
-            activity_group ag on ag.id = at.group
-        where 
-            ag.id = 1 and 
-            active = 1 and 
-            a.date between ? and ?
-        group by a.date`;
-
-    const connection = await sqlconnector.getConnection();
-
-    try {
-
-        const result = await sqlconnector.runQuery(connection, player_counts_q, [from, to]);
-
-        if (!Array.isArray(result)) {
-            throw new Error("Unable to retrieve report data");
-        }
-
-        //get dates between from and to in a map
-        const resultMap = getDateMap(from, to);
-
-        //put data in stats map
-        result.forEach(row => {
-            resultMap.set(row.date, row.value);
-        });
-
-        //return sorted stats as an array
-        return Array.from(resultMap, ([date, value]) => ({ date, value }));
-
-    } catch (err) {
-        cloudLog(loglevels.error, `Error generating report '${name}': ${err.message}`);
-        throw new RESTError(500, "Request failed");
-
-    } finally {
-        connection.release();
-    }
-
 
 }
 
@@ -115,11 +67,12 @@ playerCountsProcessor = async (name, from, to) => {
  * 
  * @param {string} startDate ISO8601 date string
  * @param {string} endDate ISO8601 date string
+ * @param {Object|Number} initialValue Initial value for the map
  * @returns {Map} A map of ordered dates between startDate and endDate with the following properties:
  *  - {string} date Date in ISO format
- *  - {number} total_min_played Total minutes played
+ *  - {Object|Number} initialValue Initial value for the map
  */
-function getDateMap(startDate, endDate) {
+function getDateMap(startDate, endDate, initialValue = 0) {
     const dates = new Map();
 
     //loop through dates betwen startDate and endDate
@@ -128,7 +81,7 @@ function getDateMap(startDate, endDate) {
 
     while (theDate <= finalDate) {
         //add date to map
-        dates.set(dayjs(theDate).format('YYYY-MM-DD'), 0);
+        dates.set(dayjs(theDate).format('YYYY-MM-DD'), initialValue);
         //add 1 day
         theDate = dayjs(theDate).add(1, 'day').valueOf();
     }
@@ -255,8 +208,7 @@ guestInfoProcessor = async function (name, from, to) {
 
 
 module.exports = {
-    timePlayedProcessor,
-    playerCountsProcessor,
+    playerStatsProcessor,
     memberActivitiesProcessor,
     guestInfoProcessor,
 
