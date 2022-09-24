@@ -3,7 +3,7 @@ const { check, validationResult, query, param } = require('express-validator');
 const { getProcessor } = require('../bookings/command');
 const RESTError = require('./../utils/RESTError');
 const { roleGuard } = require('../middleware/clientauth');
-//const { roles } = require('../utils/SystemRoles')
+const roles = require('../utils/SystemRoles')
 const { getReportTypes } = require('./reportTypes');
 const { runProcessor } = require('./controller');
 const { getClubInfo } = require('../club/controller');
@@ -24,7 +24,7 @@ router.use(express.json());
 /**
  *  Route to get all reports
  */
-router.get('/',/* roleGuard([roles.ADMIN, roles.MANAGER]) */(req, res, next) => {
+router.get('/', roleGuard([roles.ADMIN, roles.MANAGER]), (req, res, next) => {
 
     res.json(
         getReportTypes()
@@ -34,7 +34,7 @@ router.get('/',/* roleGuard([roles.ADMIN, roles.MANAGER]) */(req, res, next) => 
 /**
  * Route to get a report based on the report name
  */
-router.get('/:type', [
+router.get('/:type', roleGuard([roles.ADMIN, roles.MANAGER]), [
     param('type').isString().withMessage("Invalid report name").isIn(getReportTypes()).withMessage("Invalid report type"),
     query('from').optional().isISO8601().withMessage("Invalid FROM date"),
     query('to').optional().isISO8601().withMessage("Invalid TO date"),
@@ -53,7 +53,7 @@ router.get('/:type', [
         return true;
     }),
 
-], /* roleGuard([roles.ADMIN, roles.MANAGER]) */ async (req, res, next) => {
+], async (req, res, next) => {
     
     try {
         //Validate request
