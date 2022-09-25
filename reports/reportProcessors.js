@@ -3,6 +3,7 @@ const sqlconnector = require('../db/SqlConnector');
 const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 const RESTError = require('./../utils/RESTError');
 
+const CLUB_ID = process.env.CLUB_ID;
 
 /**
  *  @param {string} name Report name
@@ -22,7 +23,8 @@ playerStatsProcessor = async (name, from, to) => {
         sum(round((time_to_sec(a.end)-time_to_sec(a.start))/60,2)) as time_played,
         count(distinct(p.person)) as player_count
     from 
-        participant p 
+        participant p
+        join person pr on pr.id = p.person 
         join activity a on p.activity = a.id 
         join activity_type at on at.id = a.type 
         join activity_group ag on ag.id = at.group
@@ -30,13 +32,14 @@ playerStatsProcessor = async (name, from, to) => {
         ag.id = 1 and 
         active = 1
         and a.date between ? and ?
+        and pr.club = ?
     group by a.date`;
 
     const connection = await sqlconnector.getConnection();
 
     try {
 
-        const result = await sqlconnector.runQuery(connection, time_played_q, [from, to]);
+        const result = await sqlconnector.runQuery(connection, time_played_q, [from, to, CLUB_ID]);
 
         if (!Array.isArray(result)) {
             throw new Error("Unable to retrieve report data");
@@ -120,15 +123,17 @@ memberActivitiesProcessor = async function (name, from, to) {
             JOIN
         person_type ON person_type.id = pr.type
     WHERE
-        a.active = 1 AND ag.id = 1
-            AND a.date BETWEEN ? AND ?
+        a.active = 1 
+        AND ag.id = 1
+        AND a.date BETWEEN ? AND ?
+        AND pr.club = ?
     ORDER BY date , start`;
 
     const connection = await sqlconnector.getConnection();
 
     try {
 
-        const result = await sqlconnector.runQuery(connection, activities_q, [from, to]);
+        const result = await sqlconnector.runQuery(connection, activities_q, [from, to, CLUB_ID]);
 
         if (!Array.isArray(result)) {
             throw new Error("Unable to retrieve report data");
@@ -173,13 +178,15 @@ guestInfoProcessor = async function (name, from, to) {
             person as guest on guest.id = ga.guest
         WHERE
             status = 1 and
-            active_date between ? and ?`;
+            active_date between ? and ?
+            and host.club = ?
+            and guest.club = ?`;
 
         const connection = await sqlconnector.getConnection();
 
         try {
     
-            const result = await sqlconnector.runQuery(connection, guest_activity_q, [from, to]);
+            const result = await sqlconnector.runQuery(connection, guest_activity_q, [from, to, CLUB_ID, CLUB_ID]);
     
             if (!Array.isArray(result)) {
                 throw new Error("Unable to retrieve report data");
