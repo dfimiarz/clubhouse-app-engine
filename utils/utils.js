@@ -15,13 +15,15 @@ async function verifyCaptcha(token) {
 
 
     return resp.data;
-};
+}
 
 function isAuthenticated(res){
     return res.locals.geoauth === true || res.locals.userauth === true;
 }
 
+
+
 module.exports = {
     verifyCaptcha,
-    isAuthenticated
+    isAuthenticated,
 }

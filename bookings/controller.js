@@ -6,7 +6,6 @@ const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 const RESTError = require('./../utils/RESTError');
 const { getNewBooking, insertBooking,checkOverlap } = require('./BookingUtils');
 const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
-const { default: MissingRefError } = require('ajv/dist/compile/ref_error');
 
 const CLUB_ID = process.env.CLUB_ID;
 

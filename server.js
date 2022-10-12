@@ -8,8 +8,8 @@ const cors = require('cors')
 const compression = require('compression')
 const app = express()
 const RESTError = require('./utils/RESTError')
-const { checkUserAuth,checkGeoAuth, checkUserRole } = require('./middleware/clientauth')
-const { cloudLog, localLog, cloudLogLevels : loglevels } = require('./utils/logger/logger');
+const { checkUserAuth, checkGeoAuth, checkUserRole } = require('./middleware/clientauth')
+const { cloudLog, cloudLogLevels: loglevels } = require('./utils/logger/logger');
 
 app.set('trust proxy', true)
 
@@ -25,42 +25,43 @@ const corsOptions = {
 app.use(compression())
 app.use(cors(corsOptions))
 
-app.use(checkGeoAuth,checkUserAuth,checkUserRole)
+app.use(checkGeoAuth, checkUserAuth, checkUserRole)
 
-app.get('/', (req,res) => {
+app.get('/', (_req, res) => {
 
     res.json(
-        { 
+        {
             name: 'Knicks-Tennis API',
             version: '1.0'
         }
     )
 })
-app.use('/alive',(_req,res,_next) => {
-    res.status(200).json({ status: "ok"})
+app.use('/alive', (_req, res, _next) => {
+    res.status(200).json({ status: "ok" })
 })
 
-app.use('/courts', require('./courts/api'))
-app.use('/bookings', require('./bookings/api'))
-app.use('/persons', require('./persons/api'))
-app.use('/auth', require('./auth/api'))
-app.use('/guest_activations', require('./guest_activations/api'))
-app.use('/booking_types', require('./booking_types/api'))
-app.use('/club_schedule', require('./club_schedule/api.js'))
-app.use('/club', require('./club/api'))
-app.use('/reports', require('./reports/api'))
+app.use('/courts', require('./courts/api'));
+app.use('/bookings', require('./bookings/api'));
+app.use('/persons', require('./persons/api'));
+app.use('/auth', require('./auth/api'));
+app.use('/guest_activations', require('./guest_activations/api'));
+app.use('/booking_types', require('./booking_types/api'));
+app.use('/club_schedule', require('./club_schedule/api.js'));
+app.use('/club', require('./club/api'));
+app.use('/reports', require('./reports/api'));
+app.use('/activities', require('./activities/api'));
 
-app.use( (req,res,next) => {
+app.use((_req, _res, next) => {
     next(createError(404))
 })
 
-app.use( (err,req,res,next) => {
+app.use((err, _req, res, _next) => {
 
-    if( err instanceof RESTError ){
-        res.status( err.status ).json( err.payload )
+    if (err instanceof RESTError) {
+        res.status(err.status).json(err.payload)
     } else {
-        cloudLog(loglevels.error,err.message);
-        res.status(err.status || 500 ).json( err.message || 'Something went wrong' )
+        cloudLog(loglevels.error, err.message);
+        res.status(err.status || 500).json(err.message || 'Something went wrong')
     }
 
 })
