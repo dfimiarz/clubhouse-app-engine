@@ -32,7 +32,7 @@ const booking_q = `SELECT c.id AS court_id,
                         activity a
                             JOIN
                         court c ON a.court = c.id
-                            JOINs
+                            JOIN
                         club cl ON cl.id = c.club
                             JOIN
                         activity_type at ON at.id = a.type
