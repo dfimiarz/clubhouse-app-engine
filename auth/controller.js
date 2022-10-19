@@ -5,7 +5,7 @@ const RESTError = require('./../utils/RESTError');
 const sqlconnector = require('../db/SqlConnector');
 
 const EXP_TIME = 60; //Capcha expired in 120 seconds
-const ROLE_AUTHENTICATED = 1000;
+//const ROLE_AUTHENTICATED = 1000;
 
 /**
  * 
@@ -66,9 +66,6 @@ async function getUserRole(username, club_id) {
 
         return role_result.length === 1 ? role_result[0].id : null;
 
-    }
-    catch (error) {
-        throw error
     }
     finally {
         connection.release();

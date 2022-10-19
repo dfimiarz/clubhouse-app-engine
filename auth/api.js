@@ -13,15 +13,15 @@ router.use(express.json())
 /**
  * Route to check for geoauth
  */
-router.get('/geo', (req, res, next) => {
+router.get('/geo', (req, res, _next) => {
 
     res.json({ geoauth: res.locals.geoauth })
 
 })
 
-router.get('/user/profile',(req,res,next) => {
+router.get('/user/profile', (req, res, _next) => {
 
-    res.json({ role: res.locals.role ? res.locals.role: null, geoauth: res.locals.geoauth})
+    res.json({ role: res.locals.role ? res.locals.role : null, geoauth: res.locals.geoauth })
 
 })
 
@@ -31,7 +31,7 @@ router.get('/captcha', rateLimiter.captchalimiter, async (req, res, next) => {
         .then((val) => {
             res.json(val);
         })
-        .catch((err) => {
+        .catch((_err) => {
             return next(new RESTError(422, { fielderrors: [{ param: "requestid", msg: "Unable to generate captcha" }] }));
         })
 
