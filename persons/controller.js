@@ -82,9 +82,9 @@ async function getClubManagers() {
 
 /**
  * 
- * @param { Request } request 
+ * @returns {Promise<Array>} List of club guests
  */
-async function getGuests(request) {
+async function getGuests() {
 
     const connection = await sqlconnector.getConnection()
     const query = `SELECT id,CONCAT(firstname,' ',lastname) as name,firstname,lastname,type_id,role,email,UNIX_TIMESTAMP(convert_tz(valid_until,time_zone,@@GLOBAL.time_zone )) as active_until FROM members_view`
