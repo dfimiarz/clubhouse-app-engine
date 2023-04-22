@@ -1,112 +1,141 @@
-const sqlconnector = require('../db/SqlConnector')
+const sqlconnector = require("../db/SqlConnector");
 const club_id = process.env.CLUB_ID;
-const SQLErrorFactory = require('./../utils/SqlErrorFactory');
-const RESTError = require('./../utils/RESTError');
+const SQLErrorFactory = require("./../utils/SqlErrorFactory");
+const RESTError = require("./../utils/RESTError");
 
-const CURRENT_TIMESTAMP = { toSqlString: function() { return 'CURRENT_TIMESTAMP()'; } };
+const CURRENT_TIMESTAMP = {
+  toSqlString: function () {
+    return "CURRENT_TIMESTAMP()";
+  },
+};
 
 /**
- * 
+ *
  * @param {Number} member Id of member
  * @param {Number[]} guests Array of integer Ids for guests
  */
 async function addGuestActivationsInBulk(member, guests) {
+  const OPCODE = "ACTIVATE_GUESTS";
 
-    const OPCODE = "ACTIVATE_GUESTS";
+  if (!Array.isArray(guests)) {
+    throw new RESTError(400, "Guest list error ");
+  }
 
-    if (!Array.isArray(guests)) {
-        throw new RESTError(400, "Guest list error ")
-    }
+  //Query to check if member is active
+  const member_check_q =
+    "SELECT EXISTS (SELECT 1 FROM active_members WHERE id = ? and club = ? LOCK IN SHARE MODE) as 'member_found'";
 
-    //Query to check if member is active
-    const member_check_q = "SELECT EXISTS (SELECT 1 FROM active_members WHERE id = ? and club = ? LOCK IN SHARE MODE) as 'member_found'";
+  //Query to check if guests are valid
+  const guests_check_q =
+    "SELECT COUNT(*) as 'guest_count' FROM person WHERE id IN ? AND club = ? AND type = 2 LOCK IN SHARE MODE";
 
-    //Query to check if guests are valid
-    const guests_check_q = "SELECT COUNT(*) as 'guest_count' FROM person WHERE id IN ? AND club = ? AND type = 2 LOCK IN SHARE MODE";
+  //Query to get all active guests for a date
+  const guests_activation_check_q =
+    "SELECT EXISTS (SELECT guest FROM guest_activation WHERE status = 1 AND active_date = ? AND guest IN ? FOR UPDATE) as 'guest_active'";
 
-    //Query to get all active guests for a date
-    const guests_activation_check_q = "SELECT EXISTS (SELECT guest FROM guest_activation WHERE status = 1 AND active_date = ? AND guest IN ? FOR UPDATE) as 'guest_active'";
+  //Query to get local date
+  const club_date_q =
+    "SELECT CAST(convert_tz(now(),@@GLOBAL.time_zone,c.time_zone)  as DATE) as local_date from club c where c.id = ? LOCK IN SHARE MODE";
 
-    //Query to get local date
-    const club_date_q = "SELECT CAST(convert_tz(now(),@@GLOBAL.time_zone,c.time_zone)  as DATE) as local_date from club c where c.id = ? LOCK IN SHARE MODE";
+  const connection = await sqlconnector.getConnection();
 
-    const connection = await sqlconnector.getConnection()
+  try {
+    await sqlconnector.runQuery(connection, "START TRANSACTION", []);
 
     try {
+      //Get club date
+      const local_club_date_res = await sqlconnector.runQuery(
+        connection,
+        club_date_q,
+        club_id
+      );
 
-        await sqlconnector.runQuery(connection, "START TRANSACTION", []);
+      if (
+        !Array.isArray(local_club_date_res) ||
+        local_club_date_res.length !== 1
+      ) {
+        throw new RESTError(400, "Club configuration error");
+      }
 
-        try {
+      const local_club_date = local_club_date_res[0].local_date;
 
-            //Get club date
-            const local_club_date_res = await sqlconnector.runQuery(connection, club_date_q, club_id);
+      //Check if a member is active and belongs to club defined in .env
+      const m_result = await sqlconnector.runQuery(connection, member_check_q, [
+        member,
+        club_id,
+      ]);
 
-            if (!Array.isArray(local_club_date_res) || local_club_date_res.length !== 1) {
-                throw new RESTError(400, "Club configuration error")
-            }
+      if (!Array.isArray(m_result) || m_result[0].member_found !== 1) {
+        throw new RESTError(400, "Member error");
+      }
 
-            const local_club_date = local_club_date_res[0].local_date;
+      //Check if guests belong to the club
+      const g_result = await sqlconnector.runQuery(connection, guests_check_q, [
+        [guests],
+        club_id,
+      ]);
 
-            //Check if a member is active and belongs to club defined in .env
-            const m_result = await sqlconnector.runQuery(connection, member_check_q, [member, club_id]);
+      if (
+        !Array.isArray(g_result) ||
+        g_result[0].guest_count !== guests.length
+      ) {
+        throw new RESTError(400, "Guest list error. Reload and try again");
+      }
 
-            if (!Array.isArray(m_result) || m_result[0].member_found !== 1) {
-                throw new RESTError(400, "Member error")
-            }
+      //Check if guests are activated
+      const activations_result = await sqlconnector.runQuery(
+        connection,
+        guests_activation_check_q,
+        [local_club_date, [guests]]
+      );
 
-            //Check if guests belong to the club
-            const g_result = await sqlconnector.runQuery(connection, guests_check_q, [[guests], club_id]);
+      if (!Array.isArray(activations_result)) {
+        throw new RESTError(400, "Error checking guest activations");
+      }
 
-            if (!Array.isArray(g_result) || g_result[0].guest_count !== guests.length) {
-                throw new RESTError(400, "Guest list error. Reload and try again");
-            }
+      if (activations_result[0].guest_active !== 0) {
+        throw new RESTError(400, "A guest is already active");
+      }
 
-            //Check if guests are activated
-            const activations_result = await sqlconnector.runQuery(connection, guests_activation_check_q, [local_club_date,[guests]]);
+      let guest_activations = guests.map((guest_id) => {
+        return [
+          null,
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP,
+          member,
+          guest_id,
+          local_club_date,
+          false,
+          1,
+        ];
+      });
 
-            if (!Array.isArray(activations_result)) {
-                throw new RESTError(400, "Error checking guest activations");
-            }
+      const insert_q = "insert into guest_activation values ?";
 
-            if (activations_result[0].guest_active !== 0 ) {
-                throw new RESTError(400, "A guest is already active");
-            }
+      await sqlconnector.runQuery(connection, insert_q, [guest_activations]);
 
-            let guest_activations = guests.map((guest_id) => {
-                return [null, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, member, guest_id, local_club_date, false, 1];
-            });
+      await sqlconnector.runQuery(connection, "COMMIT", []);
 
-            const insert_q = "insert into guest_activation values ?"
-
-            await sqlconnector.runQuery(connection, insert_q, [guest_activations]);
-
-            await sqlconnector.runQuery(connection, "COMMIT", []);
-
-            return true;
-
-        }
-        catch (error) {
-            await sqlconnector.runQuery(connection, "ROLLBACK", [])
-            throw error;
-        }
+      return true;
+    } catch (error) {
+      await sqlconnector.runQuery(connection, "ROLLBACK", []);
+      throw error;
     }
-    catch (error) {
-        console.log(error);
-        throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
-    }
-    finally {
-        connection.release();
-    }
-
-
+  } catch (error) {
+    //console.log(error);
+    throw error instanceof RESTError
+      ? error
+      : new SQLErrorFactory.getError(OPCODE, error);
+  } finally {
+    connection.release();
+  }
 }
 
 /**
  * Return current activations for a given club
  */
 async function getCurrentActivations() {
-
-    const query = `
+  const query = `
     select 
         a.id,
         a.created,
@@ -130,7 +159,7 @@ async function getCurrentActivations() {
         a.active_date = CAST( getClubTime(now(),c.time_zone) as DATE)
     `;
 
-    const players_Query = `
+  const players_Query = `
         select person from participant
         where participant.activity in 
             (SELECT 
@@ -142,162 +171,134 @@ async function getCurrentActivations() {
                 and cl.id = ?
             )
         order by person;
-    `
+    `;
 
-    const connection = await sqlconnector.getConnection()
+  const connection = await sqlconnector.getConnection();
 
-    //Keep all the current players in a set for efficient lookup
-    const players = new Set();
+  //Keep all the current players in a set for efficient lookup
+  const players = new Set();
 
-    try {
+  try {
+    const current_players_result = await sqlconnector.runQuery(
+      connection,
+      players_Query,
+      [club_id]
+    );
 
-        const current_players_result = await sqlconnector.runQuery(connection, players_Query, [club_id])
-
-        if( ! Array.isArray(current_players_result)){
-            throw new Error("Unable to check current players");
-        }
-
-        //Load players into a set
-        current_players_result.forEach((elem) => {
-            players.add(elem.person);
-        })
-
-        const current_activations_result = await sqlconnector.runQuery(connection, query, [club_id])
-
-        return current_activations_result.map((row) => 
-            (
-             { 
-                id: row.id, 
-                created: row.created, 
-                etag: row.etag,
-                guest_firstname: row.guest_firstname,
-                guest_lastname: row.guest_lastname,
-                host_firstname: row.host_firstname,
-                host_lastname: row.host_lastname,
-                member_id: row.member_id,
-                guest_id: row.guest_id,
-                active_date: row.active_date,
-                isfamily: row.isfamily,
-                has_played: players.has(row.guest_id) ? true : false,
-                time_activated: row.time_activated
-             }
-            )
-        );
-
-
+    if (!Array.isArray(current_players_result)) {
+      throw new Error("Unable to check current players");
     }
-    catch (error) {
-        console.log(error)
-        throw error
-    }
-    finally {
-        connection.release()
-    }
+
+    //Load players into a set
+    current_players_result.forEach((elem) => {
+      players.add(elem.person);
+    });
+
+    const current_activations_result = await sqlconnector.runQuery(
+      connection,
+      query,
+      [club_id]
+    );
+
+    return current_activations_result.map((row) => ({
+      id: row.id,
+      created: row.created,
+      etag: row.etag,
+      guest_firstname: row.guest_firstname,
+      guest_lastname: row.guest_lastname,
+      host_firstname: row.host_firstname,
+      host_lastname: row.host_lastname,
+      member_id: row.member_id,
+      guest_id: row.guest_id,
+      active_date: row.active_date,
+      isfamily: row.isfamily,
+      has_played: players.has(row.guest_id) ? true : false,
+      time_activated: row.time_activated,
+    }));
+  } finally {
+    connection.release();
+  }
 }
 
 /**
- * 
+ *
  * @param {object []} activation_records Array of activation_records update commands.
- * 
- * Update command format 
- * { 
+ *
+ * Update command format
+ * {
  *  id: record.id,
  *  etag: record.etag,
  * }
- * 
+ *
  */
 async function deactivateGuests(activation_records) {
+  if (!Array.isArray(activation_records)) {
+    throw new Error("Activation records must be an array");
+  }
 
-    if (!Array.isArray(activation_records)) {
-        throw new Error("Activation records must be an array");
-    }
+  const connection = await sqlconnector.getConnection();
 
-    const connection = await sqlconnector.getConnection();
+  try {
+    await sqlconnector.runQuery(connection, "START TRANSACTION", []);
 
     try {
+      for (const record of activation_records) {
+        await __deactivateGuest(connection, record.id, record.etag);
+      }
 
-        await sqlconnector.runQuery(connection, "START TRANSACTION", []);
+      await sqlconnector.runQuery(connection, "COMMIT", []);
 
-        try {
-
-            for (const record of activation_records) {
-                await __deactivateGuest(connection, record.id, record.etag );
-            }
-
-            await sqlconnector.runQuery(connection, "COMMIT", [])
-
-            return true;
-        }
-        catch (err) {
-            await sqlconnector.runQuery(connection, "ROLLBACK", [])
-            throw err;
-        }
-
+      return true;
+    } catch (err) {
+      await sqlconnector.runQuery(connection, "ROLLBACK", []);
+      throw err;
     }
-    catch (error) {
-        console.log(error);
-        throw error
-    }
-    finally {
-        connection.release();
-    }
-
-
-
+  } finally {
+    connection.release();
+  }
 }
 
 /**
- * 
+ *
  * @param {number} id guest_activtion id
  * @param {string} etag guest_activation etag
- * @returns 
+ * @returns
  */
-async function deactivateGuest( id, etag ){
-    if( ! (id && etag)){
-        throw new Error("ID or ETAG missing");
-    }
+async function deactivateGuest(id, etag) {
+  if (!(id && etag)) {
+    throw new Error("ID or ETAG missing");
+  }
 
-    const connection = await sqlconnector.getConnection();
+  const connection = await sqlconnector.getConnection();
+
+  try {
+    await sqlconnector.runQuery(connection, "START TRANSACTION", []);
 
     try {
+      await __deactivateGuest(connection, id, etag);
 
-        await sqlconnector.runQuery(connection, "START TRANSACTION", []);
+      await sqlconnector.runQuery(connection, "COMMIT", []);
 
-        try {
-
-            
-            await __deactivateGuest(connection, id, etag );
-            
-            await sqlconnector.runQuery(connection, "COMMIT", [])
-
-            return true;
-        }
-        catch (err) {
-
-            await sqlconnector.runQuery(connection, "ROLLBACK", [])
-            throw err;
-        }
-
+      return true;
+    } catch (err) {
+      await sqlconnector.runQuery(connection, "ROLLBACK", []);
+      throw err;
     }
-    catch (error) {
-        throw error
-    }
-    finally {
-        connection.release();
-    }
+  } finally {
+    connection.release();
+  }
 }
 
 /**
- * 
- * @param {Object } connection MySQL connection object 
+ *
+ * @param {Object } connection MySQL connection object
  * @param { Number } id Guest Activation record ID
  * @param { String } etag Etag of the entity
- *  
+ *
  * IMPORTANT: Must be contained in a SQL transaction to work correctly.
  */
 async function __deactivateGuest(connection, id, etag) {
-
-    const gaQuery = `
+  const gaQuery = `
         SELECT ga.id, 
             ga.active_date,
             ga.guest,
@@ -308,55 +309,61 @@ async function __deactivateGuest(connection, id, etag) {
             join club c on c.id = p.club 
         WHERE ga.id = ? and MD5(updated) = ? and status = 1
         FOR UPDATE;
-    `
+    `;
 
-    const guestPlayedQuery = `
+  const guestPlayedQuery = `
         SELECT EXISTS( SELECT a.id FROM activity a JOIN participant p ON p.activity = a.id WHERE p.person = ? AND a.date = ? AND a.active = 1 LOCK IN SHARE MODE) as guest_played;
-    `
+    `;
 
-    const updateGaQuery = `
+  const updateGaQuery = `
         UPDATE guest_activation SET status = 0 WHERE id = ?
-    `
+    `;
 
-    const ga_result = await sqlconnector.runQuery(connection, gaQuery, [id, etag]);
+  const ga_result = await sqlconnector.runQuery(connection, gaQuery, [
+    id,
+    etag,
+  ]);
 
-    if (!(Array.isArray(ga_result) && ga_result.length === 1)) {
-        throw new Error("Activation not found or modified.");
-    }
+  if (!(Array.isArray(ga_result) && ga_result.length === 1)) {
+    throw new Error("Activation not found or modified.");
+  }
 
-    //UTC Values in seconds
-    const activation_start = ga_result[0].start_utc_ts;
+  //UTC Values in seconds
+  const activation_start = ga_result[0].start_utc_ts;
 
-    //Add a day worth of seconds to compute activation end time
-    const activation_end = activation_start + 86400;
-    const current_time = ga_result[0].now_utc_ts;
-    const guest_active_date = ga_result[0].active_date;
-    const guest_id = ga_result[0].guest;
+  //Add a day worth of seconds to compute activation end time
+  const activation_end = activation_start + 86400;
+  const current_time = ga_result[0].now_utc_ts;
+  const guest_active_date = ga_result[0].active_date;
+  const guest_id = ga_result[0].guest;
 
-    //Do not allow past activations to be removed.
-    //We may want to allow this in the future for admins so this check should not be done in the database
-    if( activation_end <= current_time ){
-        throw new Error("Past activations removal not allowed");
-    }
+  //Do not allow past activations to be removed.
+  //We may want to allow this in the future for admins so this check should not be done in the database
+  if (activation_end <= current_time) {
+    throw new Error("Past activations removal not allowed");
+  }
 
-    //Do not allow guests that have played to be removed
-    const guestPlayed_result = await sqlconnector.runQuery(connection, guestPlayedQuery, [guest_id, guest_active_date]);
+  //Do not allow guests that have played to be removed
+  const guestPlayed_result = await sqlconnector.runQuery(
+    connection,
+    guestPlayedQuery,
+    [guest_id, guest_active_date]
+  );
 
-    if (!(Array.isArray(ga_result) && ga_result.length === 1)) {
-        throw new Error("Unable to verify guest play time");
-    }
+  if (!(Array.isArray(ga_result) && ga_result.length === 1)) {
+    throw new Error("Unable to verify guest play time");
+  }
 
-    if( guestPlayed_result[0].guest_played === 1){
-        throw new Error("Guest has already played.");
-    }
+  if (guestPlayed_result[0].guest_played === 1) {
+    throw new Error("Guest has already played.");
+  }
 
-    await sqlconnector.runQuery(connection, updateGaQuery, [id]);
-
+  await sqlconnector.runQuery(connection, updateGaQuery, [id]);
 }
 
 module.exports = {
-    addGuestActivationsInBulk,
-    getCurrentActivations,
-    deactivateGuests,
-    deactivateGuest
-}
+  addGuestActivationsInBulk,
+  getCurrentActivations,
+  deactivateGuests,
+  deactivateGuest,
+};

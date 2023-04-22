@@ -203,7 +203,6 @@ async function addBooking(request) {
         
     }
     catch (error) {
-        console.log(error);
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error);
     }
     finally {
@@ -350,7 +349,6 @@ async function getBookingDetails(id) {
         return booking;
     }
     catch (error) {
-        console.log(error);
         throw error instanceof RESTError ? error : new SQLErrorFactory.getError(OPCODE, error)
 
     }

@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const sqlconnector = require('../db/SqlConnector');
-const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 const RESTError = require('./../utils/RESTError');
 
 const CLUB_ID = process.env.CLUB_ID;
@@ -15,7 +15,7 @@ const CLUB_ID = process.env.CLUB_ID;
  *  - {string} type Report type  
  *  
  */
-playerStatsProcessor = async (name, from, to) => {
+const playerStatsProcessor = async (name, from, to) => {
 
     const time_played_q =
         `select 
@@ -92,7 +92,7 @@ function getDateMap(startDate, endDate, initialValue = 0) {
     return dates;
 }
 
-memberActivitiesProcessor = async function (name, from, to) {
+const memberActivitiesProcessor = async function (name, from, to) {
     const activities_q =
         `SELECT 
         p.id AS participant_id,
@@ -164,7 +164,7 @@ memberActivitiesProcessor = async function (name, from, to) {
 
 }
 
-guestInfoProcessor = async function (name, from, to) {
+const guestInfoProcessor = async function (name, from, to) {
 
     const guest_activity_q =
         `SELECT 

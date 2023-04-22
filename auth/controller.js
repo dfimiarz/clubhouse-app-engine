@@ -5,7 +5,6 @@ const RESTError = require('./../utils/RESTError');
 const sqlconnector = require('../db/SqlConnector');
 
 const EXP_TIME = 60; //Capcha expired in 120 seconds
-//const ROLE_AUTHENTICATED = 1000;
 
 /**
  * 

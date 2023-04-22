@@ -1,7 +1,7 @@
 const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
 const { getJSON, storeJSON } = require('./../db/RedisConnector')
-const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -140,7 +140,7 @@ function getClosedTimeFramesForDay(courts, open_sessions, calendar_start_min, ca
         });
     });
 
-    console.log(calStartHour, calEndHour, open_sessions, closed_time_frames);
+    //console.log(calStartHour, calEndHour, open_sessions, closed_time_frames);
 
     return closed_time_frames;
 }

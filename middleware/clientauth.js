@@ -1,7 +1,7 @@
 const {getAuth} = require('firebase-admin/auth')
 const app = require('../firebaseadmin/firebaseadmin')
 const RESTError = require('../utils/RESTError')
-const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 const { getUserRole } = require('./../auth/controller');
 const club_id = process.env.CLUB_ID;
 

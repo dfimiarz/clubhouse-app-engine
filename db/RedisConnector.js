@@ -1,5 +1,5 @@
 const redis = require("redis");
-const { cloudLog, localLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
 
 /**
  * Current number of attempts to report/log error state
