@@ -4,9 +4,9 @@ const SQLErrorFactory = require('./../utils/SqlErrorFactory');
 
 /**
  * 
- * @param { Request } request 
+ * @returns {Promise<Array>} List of club members
  */
-async function getMembers(request) {
+async function getMembers() {
 
 
     const connection = await sqlconnector.getConnection()
@@ -15,9 +15,6 @@ async function getMembers(request) {
 
         const members = await sqlconnector.runQuery(connection, query)
         return members
-    }
-    catch (error) {
-        throw error
     }
     finally {
         connection.release()
@@ -39,9 +36,6 @@ async function getEligiblePersons() {
         const persons = await sqlconnector.runQuery(connection, query)
         return persons
     }
-    catch (error) {
-        throw error
-    }
     finally {
         connection.release()
     }
@@ -59,9 +53,6 @@ async function getActiveMembers() {
 
         const persons = await sqlconnector.runQuery(connection, query)
         return persons
-    }
-    catch (error) {
-        throw error
     }
     finally {
         connection.release()
@@ -83,9 +74,6 @@ async function getClubManagers() {
         const managers = await sqlconnector.runQuery(connection, query,club_id)
         return managers;
     }
-    catch (error) {
-        throw error
-    }
     finally {
         connection.release()
     }
@@ -104,9 +92,6 @@ async function getGuests(request) {
 
         const courts = await sqlconnector.runQuery(connection, query)
         return courts
-    }
-    catch (error) {
-        throw error
     }
     finally {
         connection.release()
@@ -163,9 +148,6 @@ async function getPersons() {
         const persons = await sqlconnector.runQuery(connection, query)
         return persons
     }
-    catch (error) {
-        throw error
-    }
     finally {
         connection.release()
     }
@@ -183,9 +165,6 @@ async function getInactiveGuests() {
         const guests = await sqlconnector.runQuery(connection, query)
         return guests
     }
-    catch (error) {
-        throw error
-    }
     finally {
         connection.release()
     }
@@ -202,9 +181,6 @@ async function getActiveGuests() {
 
         const guests = await sqlconnector.runQuery(connection, query)
         return guests
-    }
-    catch (error) {
-        throw error
     }
     finally {
         connection.release()
