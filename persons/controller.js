@@ -43,19 +43,19 @@ async function getEligiblePersons() {
 }
 
 /**
- * Returns a list of club members elgible to play
+ * Returns a list of persons active membership. This includes guests with active status.
  */
-async function getActiveMembers() {
+async function getActivePersons() {
 
-    const connection = await sqlconnector.getConnection()
-    const query = `SELECT * FROM active_members`
+    const connection = await sqlconnector.getConnection();
+    const query = `SELECT * FROM membership_view m WHERE convert_tz(CURDATE(),@@GLOBAL.time_zone,m.time_zone) between m.valid_from and m.valid_until and m.club = ?`;
     try {
 
-        const persons = await sqlconnector.runQuery(connection, query)
-        return persons
+        const persons = await sqlconnector.runQuery(connection, query,club_id);
+        return persons;
     }
     finally {
-        connection.release()
+        connection.release();
     }
 
 }
@@ -195,6 +195,6 @@ module.exports = {
     getPersons,
     getInactiveGuests,
     getActiveGuests,
-    getActiveMembers,
+    getActivePersons,
     getClubManagers
 }

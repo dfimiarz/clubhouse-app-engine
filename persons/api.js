@@ -1,6 +1,5 @@
 const express = require('express')
-const bodyParser = require('body-parser')
-const { check, validationResult, oneOf, body } = require('express-validator')
+const { check, validationResult, body } = require('express-validator')
 const controller = require('./controller')
 const RESTError = require('./../utils/RESTError');
 const { authGuard } = require('../middleware/clientauth')
@@ -9,11 +8,10 @@ const utils = require('../utils/utils')
 
 const router = express.Router();
 
-urlEncodedParse = bodyParser.urlencoded({ extended: false })
-router.use(bodyParser.json())
+router.use(express.json())
 
 /**
- * Route to get all nestboxes
+ * Route to get all persons
  */
 router.get('/', authGuard, (req, res, next) => {
 
@@ -26,20 +24,37 @@ router.get('/', authGuard, (req, res, next) => {
           })
 
 
-})
+});
 
-router.get('/eligible', authGuard, (req, res, next) => {
+/**
+ * Route to get all active persons
+ */
+router.get('/active', authGuard, (req, res, next) => {
 
-     controller.getEligiblePersons()
-          .then((persons) => {
-               res.json(persons)
-          })
-          .catch((err) => {
-               next(err)
-          })
+     controller.getActivePersons()
+     .then((persons) => {
+          res.json(persons)
+     })
+     .catch((err) => {
+          next(err)
+     })
+});
+
+/**
+ * TO DO: REMOVE THIS ROUTE
+ */
+// router.get('/eligible', authGuard, (req, res, next) => {
+
+//      controller.getEligiblePersons()
+//           .then((persons) => {
+//                res.json(persons)
+//           })
+//           .catch((err) => {
+//                next(err)
+//           })
 
 
-})
+// })
 
 router.get('/members', authGuard, (req, res, next) => {
 
@@ -50,9 +65,7 @@ router.get('/members', authGuard, (req, res, next) => {
           .catch((err) => {
                next(err)
           })
-
-
-})
+});
 
 router.get('/members/active', authGuard, (req, res, next) => {
 
@@ -65,7 +78,7 @@ router.get('/members/active', authGuard, (req, res, next) => {
           })
 
 
-})
+});
 
 router.get('/members/managers', authGuard, (req, res, next) => {
      controller.getClubManagers()

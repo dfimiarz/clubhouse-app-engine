@@ -52,7 +52,7 @@ async function getUserRole(username, club_id) {
 
     //set up connection and query
     const connection = await sqlconnector.getConnection()
-    const query = `SELECT r.id,r.lbl FROM clubhouse.member m join person p on p.id = m.person_id join role r on r.id = m.role where club = ? and now() between valid_from AND valid_until and p.email = ?`;
+    const query = `SELECT r.id,r.lbl FROM clubhouse.membership m join person p on p.id = m.person_id join role r on r.id = m.role join club c on c.id = p.club where club = ? and convert_tz(CURDATE(),@@GLOBAL.time_zone,c.time_zone) between valid_from AND valid_until and p.email = ?`;
 
     //Get role from the database
     try {
