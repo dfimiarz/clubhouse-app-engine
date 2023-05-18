@@ -73,9 +73,36 @@ async function getUserRole(username, club_id) {
 
 }
 
+/**
+ * TO DO: Move to a separate file
+ */
+
+async function verifyhCaptcha(token) {
+
+    const secret = process.env.HCAPTCHA_SECRET_KEY;
+
+    const url = `https://hcaptcha.com/siteverify`;
+
+    const data = { secret, response: token };
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(data)
+    });
+
+    const result = await response.json();
+
+    return result.success;
+
+}
+
 
 module.exports = {
     getCaptcha,
     verifyCaptcha,
-    getUserRole
+    getUserRole,
+    verifyhCaptcha,
 }

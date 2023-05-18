@@ -1,6 +1,7 @@
 const sqlconnector = require('../db/SqlConnector')
 const club_id = process.env.CLUB_ID;
 const SQLErrorFactory = require('./../utils/SqlErrorFactory');
+const { cloudLog, cloudLogLevels : loglevels } = require('./../utils/logger/logger');
 
 /**
  * 
@@ -107,7 +108,7 @@ async function addGuest(request) {
     const lastname = request.body.lastname;
     const email = request.body.email;
     const phone = request.body.phone;
-    const guest_type = 2;
+    const GUEST_ROLE_ID = 500;
 
     const _firstNames = firstname.split(" ");
     const _lastNames = lastname.split("-");
@@ -120,17 +121,35 @@ async function addGuest(request) {
         return acc + (index === 0 ? "" : "-") + val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
     },"")
 
-    const query = "INSERT INTO `person` (`type`,`club`,`created`,`firstname`,`lastname`,`email`,`phone`,`gender`) VALUES (?,?,now(),?,?,?,?,DEFAULT)";
+    const person_query = "INSERT INTO `person` (`club`,`created`,`firstname`,`lastname`,`email`,`phone`,`gender`) VALUES (?,now(),?,?,?,?,DEFAULT)";
+    const membership_query = "INSERT INTO `membership` (`person_id`,`valid_from`,`valid_until`,`role`) VALUES (?,CURDATE(),DATE_ADD(DATE_FORMAT(NOW(), '%Y-01-01'), INTERVAL 1 YEAR),?)";
 
     const connection = await sqlconnector.getConnection();
 
     try {
 
-        await sqlconnector.runQuery(connection, query, [guest_type, club_id, formattedFirstName, formattedLastName, email, phone])
+        try{
+            await sqlconnector.runQuery(connection, "START TRANSACTION READ WRITE", []);
+
+            const person_insert_result = await sqlconnector.runQuery(connection, person_query, [club_id, formattedFirstName, formattedLastName, email, phone])    
+
+            const person_id = person_insert_result.insertId;
+
+            await sqlconnector.runQuery(connection, membership_query, [person_id, GUEST_ROLE_ID]);
+
+            await sqlconnector.runQuery(connection, "COMMIT", []);
+
+            cloudLog(loglevels.info,`Guest added: ${JSON.stringify({firstname:formattedFirstName,lastname:formattedLastName,email:email,phone:phone})}`);
+        }
+        catch (error) {
+            await sqlconnector.runQuery(connection, "ROLLBACK", []);
+            throw error;
+        }
+
 
     }
     catch (error) {
-        //console.log(error)
+        console.log(error)
         throw new SQLErrorFactory.getError(OPCODE, error)
     }
     finally {

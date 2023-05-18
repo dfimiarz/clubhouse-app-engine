@@ -134,14 +134,12 @@ router.post('/guests', [
      body('firstname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
      body('lastname').isString().trim().notEmpty().withMessage("Field cannot be empty").isLength({ min: 2, max: 32}).withMessage("Must be between 2 and 32 characters long"),
      body('phone').if((value) => !!value ).isMobilePhone('en-US').withMessage("Must be a valid phone number"),
-     check('agreement').exists().isBoolean().isIn([true]).withMessage("Agreement required"),
-     check('vaccinated').exists().isBoolean().isIn([true]).withMessage("Vaccine attestation required")
+     check('agreement').exists().isBoolean().isIn([true]).withMessage("Agreement required")
 ], async (req, res, next) => {
 
      //Check if captcha is set for users that are not logged in
      if (!utils.isAuthenticated(res)) {
-          await body('captcha').notEmpty().withMessage("Captcha must be set").run(req);
-          await body('requestid').notEmpty().withMessage("Missing request id").run(req);
+          await body('hcaptcha').notEmpty().withMessage("hCaptcha must be set").run(req);
      }
 
      const errors = validationResult(req);
@@ -153,10 +151,10 @@ router.post('/guests', [
      try {
           //Run captcha verification is users is not authenticated
           if (! utils.isAuthenticated(res)) {
-               const verified = await authcontroller.verifyCaptcha(req.body.requestid, req.body.captcha)
+               const verified = await authcontroller.verifyhCaptcha(req.body.hcaptcha);
 
                if (!verified) {
-                    throw new RESTError(422,{ fielderrors: [{ param: "captcha", msg: "Failed to verify captcha"}]});
+                    throw new RESTError(422,{ fielderrors: [{ param: "hcaptcha", msg: "Failed to verify captcha"}]});
                }
           }
 
