@@ -6,6 +6,8 @@ const {
   cloudLogLevels: loglevels,
 } = require("./../utils/logger/logger");
 
+const constatnts = require("./../utils/dbconstants");
+
 /**
  *
  * @returns {Promise<Array>} List of club members
@@ -41,10 +43,9 @@ async function getEligiblePersons() {
  * Returns a list of persons active membership. This includes guests with active status.
  */
 async function getActivePersons() {
-  const GUEST_ROLE_TYPE_ID = 100;
-
   const connection = await sqlconnector.getConnection();
-  const query = `SELECT * FROM membership_view m WHERE DATE(convert_tz(NOW(),@@GLOBAL.time_zone,m.time_zone)) BETWEEN m.valid_from AND m.valid_until and m.club = ?`;
+  //TO DO: Add transaction and locking to ensure that membership and pass data is consistent
+  const query = `SELECT m.* FROM membership_view m JOIN club c on c.id = m.club WHERE DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) BETWEEN m.valid_from AND m.valid_until and m.club = ?`;
   const passes_query = `SELECT gp.id,guest_id,gp.type,gpt.label FROM clubhouse.guest_pass gp 
     join person p on p.id = gp.guest_id 
     join club c on p.club = c.id 
@@ -52,7 +53,7 @@ async function getActivePersons() {
     WHERE 
     c.id = ?
     AND
-    DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) BETWEEN gp.valid_from and gp.valid_to;`;
+    convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone) BETWEEN gp.valid_from and gp.valid_to;`;
   try {
     const active_passes = await sqlconnector.runQuery(
       connection,
@@ -71,7 +72,7 @@ async function getActivePersons() {
     //Loop through persons and add active pass info to each guest
     persons.forEach((person) => {
       if (
-        person.role_type_id === GUEST_ROLE_TYPE_ID &&
+        person.role_type_id === constatnts.ROLE_TYPES.GUEST_TYPE &&
         active_passes_hash[person.id]
       ) {
         person.pass = active_passes_hash[person.id];
