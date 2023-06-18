@@ -52,8 +52,6 @@ const addGuestPass = async (passinfo) => {
       throw new RESTError(400, "Invalid host");
     }
 
-    console.log(host_data_res);
-
     //Check if host is allowed to host guests
     const person_can_host = host_data_res[0].can_host;
 
@@ -162,7 +160,6 @@ const addGuestPass = async (passinfo) => {
       type: passinfo.pass_type,
     };
   } catch (err) {
-    console.log(err);
     throw new RESTError(500, "Unable to activate", err);
   }
 };
