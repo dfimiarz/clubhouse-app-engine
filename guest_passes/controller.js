@@ -37,7 +37,7 @@ const addGuestPass = async (passinfo) => {
 
   const role_check_q = `SELECT mv.role_type_id,c.time_zone,can_host FROM membership_view mv JOIN club c on c.id = mv.club WHERE mv.id = ? and club = ? and DATE(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, c.time_zone)) BETWEEN mv.valid_from AND mv.valid_until`;
 
-  const guest_pass_typq_q = `SELECT valid_days, season_limit FROM guest_pass_type WHERE id = ? and club_id  = ?`;
+  const guest_pass_typq_q = `SELECT label, valid_days, season_limit FROM guest_pass_type WHERE id = ? and club_id  = ?`;
 
   const connection = await sqlconnector.getConnection();
 
@@ -71,8 +71,6 @@ const addGuestPass = async (passinfo) => {
       throw new RESTError(400, "Guest not found");
     }
 
-    console.log(guest_data_res);
-
     //Check if person designated as guest is actually a guest
     const guest_role_type = guest_data_res[0].role_type_id;
 
@@ -104,9 +102,11 @@ const addGuestPass = async (passinfo) => {
       throw new RESTError(400, "Invalid pass type");
     }
 
-    //Get valid_days and season_limit
+    //Get valid_days, season_limit, and label from pass type
     const valid_days = pass_type_res[0].valid_days;
     const season_limit = pass_type_res[0].season_limit;
+    /** @type {string} */
+    const pass_type_label = pass_type_res[0].label;
 
     //Check current pass count for guest
     const passCountForGuest = await getGuestPassCount(
@@ -145,7 +145,7 @@ const addGuestPass = async (passinfo) => {
     const v_f_formatted = valid_from.format("YYYY-MM-DD HH:mm:ss");
     const v_t_formatted = valid_to.format("YYYY-MM-DD HH:mm:ss");
 
-    const guest_pass_id = await sqlconnector.runQuery(
+    const guest_pass_res = await sqlconnector.runQuery(
       connection,
       insert_guest_pass_q,
       [
@@ -156,7 +156,11 @@ const addGuestPass = async (passinfo) => {
         v_t_formatted,
       ]
     );
-    return guest_pass_id;
+    return {
+      id: guest_pass_res.insertId,
+      label: pass_type_label,
+      type: passinfo.pass_type,
+    };
   } catch (err) {
     console.log(err);
     throw new RESTError(500, "Unable to activate", err);
