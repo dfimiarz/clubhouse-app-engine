@@ -50,8 +50,8 @@ async function getActivePersons() {
     join club c on p.club = c.id 
     join guest_pass_type gpt on gpt.id = gp.type
     WHERE 
-    c.id = ?
-    AND
+    c.id = ? AND
+    gp.valid = 1 AND
     convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone) BETWEEN gp.valid_from and gp.valid_to`;
 
   try {
