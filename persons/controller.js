@@ -44,7 +44,6 @@ async function getEligiblePersons() {
  */
 async function getActivePersons() {
   const connection = await sqlconnector.getConnection();
-  //TO DO: Add transaction and locking to ensure that membership and pass data is consistent
   const query = `SELECT m.* FROM membership_view m JOIN club c on c.id = m.club WHERE DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) BETWEEN m.valid_from AND m.valid_until and m.club = ?`;
   const passes_query = `SELECT gp.id,guest_id,gp.type,gpt.label FROM clubhouse.guest_pass gp 
     join person p on p.id = gp.guest_id 
@@ -53,7 +52,8 @@ async function getActivePersons() {
     WHERE 
     c.id = ?
     AND
-    convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone) BETWEEN gp.valid_from and gp.valid_to;`;
+    convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone) BETWEEN gp.valid_from and gp.valid_to`;
+
   try {
     const active_passes = await sqlconnector.runQuery(
       connection,
