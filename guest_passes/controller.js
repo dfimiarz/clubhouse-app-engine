@@ -132,7 +132,7 @@ const addGuestPass = async (passinfo) => {
         season_end
       );
 
-      console.log(passes);
+      //console.log(passes);
 
       //Find if there is an active pass already for the guest
       const active_pass = passes.find((pass) => pass.active === 1);
