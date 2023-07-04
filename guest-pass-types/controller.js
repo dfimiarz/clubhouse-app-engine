@@ -19,7 +19,8 @@ const getPassTypes = async () => {
             club_id,
             label,
             valid_days,
-            season_limit
+            season_limit,
+            cost
         FROM 
             guest_pass_type
         WHERE 
@@ -34,14 +35,20 @@ const getPassTypes = async () => {
       club_id
     );
 
-    if (!Array.isArray(guest_pass_types_res)) {
-      throw new RESTError(400, "Error fetching guest pass types");
+    if (
+      !Array.isArray(guest_pass_types_res) ||
+      guest_pass_types_res.length < 1
+    ) {
+      throw new RESTError(400, "Failed loading guest pass types");
     }
 
     return guest_pass_types_res.map((pass_type) => {
       return {
         id: pass_type.id,
         label: pass_type.label,
+        valid: pass_type.valid_days,
+        limit: pass_type.season_limit,
+        cost: pass_type.cost,
       };
     });
   } finally {

@@ -15,18 +15,22 @@ const router = express.Router();
 
 router.use(express.json());
 
-router.get("/", (_req, res, next) => {
-  controller
-    .getPassTypes()
-    .then((result) => {
-      res.json(result);
-    })
-    .catch((err) => {
-      console.log(err);
-      next(
-        err instanceof RESTError ? err : new RESTError(400, "Operation failed")
-      );
-    });
-});
+router.get(
+  "/",
+  /* authGuard, */ (_req, res, next) => {
+    controller
+      .getPassTypes()
+      .then((result) => {
+        res.json(result);
+      })
+      .catch((err) => {
+        next(
+          err instanceof RESTError
+            ? err
+            : new RESTError(400, "Operation failed")
+        );
+      });
+  }
+);
 
 module.exports = router;
