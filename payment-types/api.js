@@ -8,7 +8,7 @@ const {
 } = require("./../utils/logger/logger");
 
 /**
- * @typedef {import("./types").PassType} PassType;
+ * @typedef {import("./types").PaymentType} PaymentType;
  */
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.use(express.json());
 
 router.get("/", authGuard, (_req, res, next) => {
   controller
-    .getPassTypes()
+    .getPaymentTypes()
     .then((result) => {
       res.json(result);
     })

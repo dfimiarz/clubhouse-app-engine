@@ -2,8 +2,6 @@ const sqlconnector = require("../db/SqlConnector");
 const club_id = process.env.CLUB_ID;
 const RESTError = require("../utils/RESTError");
 
-//const CONSTANTS = require("./../utils/dbconstants");
-
 /**
  * @typedef {import("./types").PassType} PassType;
  */

@@ -56,6 +56,7 @@ app.use("/reports", require("./reports/api"));
 app.use("/activities", require("./activities/api"));
 app.use("/guest_passes", require("./guest_passes/api"));
 app.use("/guest-pass-types", require("./guest-pass-types/api"));
+app.use("/payment-types", require("./payment-types/api"));
 
 app.use((_req, _res, next) => {
   next(createError(404));

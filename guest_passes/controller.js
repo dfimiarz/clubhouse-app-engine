@@ -202,7 +202,9 @@ const addGuestPass = async (passinfo) => {
     } catch (err) {
       console.log(err);
       await sqlconnector.runQuery(connection, "ROLLBACK", []);
-      throw new RESTError(500, "Unable to activate", err);
+      throw err instanceof RESTError
+        ? err
+        : new RESTError(500, "Unable to activate", err);
     }
   } finally {
     connection.release();
