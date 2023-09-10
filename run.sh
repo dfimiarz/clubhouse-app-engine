@@ -1,1 +1,0 @@
-node --watch --trace-warnings server.js
