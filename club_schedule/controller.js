@@ -152,11 +152,19 @@ async function getClubSchedules() {
 
     //Check redis cache
     const redisKey = `club_schedules_${CLUB_ID}`;
+    let cachedSchedule = null;
 
-    const redisData = await getJSON(redisKey);
+    //Check redis cache
+    try {
+        cachedSchedule = await getJSON(redisKey);
+    }
+    catch (error) {
+        cloudLog(loglevels.error, `Error retrieving club schedules from cache: ${error}`);
+    }
 
-    if (redisData) {
-        return redisData;
+    if (cachedSchedule) {
+        //console.debug("Returning club schedules from cache", redisData);
+        return cachedSchedule;
     }
 
     const connection = await sqlconnector.getConnection();
@@ -251,8 +259,14 @@ async function getClubSchedules() {
             }
         });
 
-        //store to redis
-        await storeJSON(redisKey, result);
+
+        try {
+            //store to redis
+            await storeJSON(redisKey, result);
+        }
+        catch (error) {
+            cloudLog(loglevels.error, `Error storing club schedules to cache: ${error}`);
+        }
 
         return result;
 
