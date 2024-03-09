@@ -34,13 +34,8 @@ permissions: []
 Player properties
 
 person_id,
-firstname,
-lastname,
-person_type_id,
-person_type_lbl,
-player_type,
-player_type_lbl,
-player_type_desc
+member_role_id,
+player_type_id
 
 */
 

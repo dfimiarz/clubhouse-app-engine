@@ -16,12 +16,36 @@ const {
 
 const CLUB_ID = process.env.CLUB_ID;
 
+/**
+ * Retrieves bookings for a specific date.
+ *
+ * @param {string} date - The date for which to retrieve bookings.
+ * @returns {Promise<Array>} - A promise that resolves to an array of bookings.
+ * @throws {Error} - If there is an error retrieving the bookings.
+ */
 async function getBookingsForDate(date) {
   if (date === null) return [];
 
   const connection = await sqlconnector.getConnection();
   const player_query =
-    "select p.activity,p.person as person_id,p.type as player_type,p.status,person.firstname, person.lastname,person.type as person_type from participant p join person on person.id = p.person where p.activity in ( ? ) order by activity FOR SHARE";
+    ` SELECT 
+        p.activity,
+        p.person as person_id,
+        p.type as player_type,
+        p.status,
+        person.firstname,
+        person.lastname,
+        m.role as person_role_id,
+        r.lbl as person_role_label,
+        r.type as person_role_type_id,
+        rt.label as person_role_type_label
+      FROM participant p 
+      JOIN person on person.id = p.person
+      LEFT JOIN membership m on m.person_id = p.person
+      LEFT JOIN role r on r.id = m.role
+      LEFT JOIN role_type rt on rt.id = r.type
+      WHERE p.activity in ( ? ) 
+      ORDER BY activity FOR SHARE`;
 
   const activity_query = `SELECT 
                                 activity.id,
@@ -114,7 +138,10 @@ async function getBookingsForDate(date) {
             status: player.status,
             firstname: player.firstname,
             lastname: player.lastname,
-            person_type: player.person_type,
+            person_role_id: player.person_role_id,
+            person_role_type_id:  player.person_role_type_id,
+            person_role_label: player.person_role_label,
+            person_role_type_label: player.person_role_type_label
           });
           bookings.set(activity_id, activity);
         }
@@ -156,7 +183,7 @@ async function addBooking(request) {
   }
   //END
 
-  const person_check_q = `SELECT p.id,p.type,m.role FROM clubhouse.person p left join member m on m.person_id = p.id WHERE p.id IN ? AND p.club = ? LOCK IN SHARE MODE`;
+  const person_check_q = `SELECT p.id,m.role FROM clubhouse.person p left join membership m on m.person_id = p.id WHERE p.id IN ? AND p.club = ? LOCK IN SHARE MODE`;
 
   const connection = await sqlconnector.getConnection();
 
@@ -192,9 +219,8 @@ async function addBooking(request) {
 
       initValues.players = persons_result.map((person) => ({
         person_id: person.id,
-        person_type: person.type,
-        member_role: person.role,
-        player_type: playerTypeMap.get(person.id),
+        member_role_id: person.role,
+        player_type_id: playerTypeMap.get(person.id),
       }));
 
       const booking = await getNewBooking(connection, initValues);

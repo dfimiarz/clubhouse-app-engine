@@ -195,7 +195,7 @@ async function insertBooking(connection, booking) {
     const activity_id = activity_result.insertId;
 
     //`id`, `activity`, `person`, `status`, `type`
-    const playersArrays = booking.players.map((player) => [null, activity_id, player.person_id, 1, player.player_type])
+    const playersArrays = booking.players.map((player) => [null, activity_id, player.person_id, 1, player.player_type_id])
 
     await sqlconnector.runQuery(connection, insertPlayersQ, [playersArrays])
 

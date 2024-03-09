@@ -12,13 +12,14 @@ const cloudLogLevels = {
 
 //Get log name from env var
 const logName = process.env.GCLOUD_LOG_NAME;
+const projectId = process.env.GCLOUD_PROJECT_ID;
 
-const logging = new Logging();
+const logging = new Logging({ projectId});
 
 // Selects the log to write to
 const log = logging.log(logName)
 
-const logger = winston.createLogger({
+const localLogger = winston.createLogger({
   level: 'debug',
   transports: [
     new winston.transports.Console()
@@ -55,11 +56,11 @@ function cloudLog(level,message, resource_type = 'global'){
 function localLog(level,message,meta = null){
 
   if( ! Object.prototype.hasOwnProperty.call(winston.config.syslog.levels,level)){
-    logger.log('error',`Log level "${ level }" not supported`);
+    localLogger.log('error',`Log level "${ level }" not supported`);
     return
   }
 
-  logger.log(level,message,meta);
+  localLogger.log(level,message,meta);
 
 }
 
