@@ -341,8 +341,6 @@ async function getBookingDetails(id) {
                     person as person_id, 
                     p.firstname, 
                     p.lastname,
-                    p.type as person_type_id, 
-                    pert.lbl as person_type_lbl, 
                     participant.type as player_type, 
                     pt.lbl as player_type_lbl,
                     pt.desc as player_type_desc
@@ -352,8 +350,6 @@ async function getBookingDetails(id) {
                     person p ON p.id = participant.person
                         JOIN
                     participant_type pt ON pt.id = participant.type
-                        JOIN
-                    person_type pert ON pert.id = p.type
                 WHERE 
                     activity = ?
                 LOCK IN SHARE MODE    
@@ -431,6 +427,7 @@ async function getBookingDetails(id) {
 
     return booking;
   } catch (error) {
+    console.log(error);
     throw error instanceof RESTError
       ? error
       : new SQLErrorFactory.getError(OPCODE, error);
