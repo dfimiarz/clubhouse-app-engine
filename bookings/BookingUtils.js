@@ -45,8 +45,6 @@ const player_q = `SELECT
                         person as person_id, 
                         p.firstname, 
                         p.lastname,
-                        p.type as person_type_id, 
-                        pert.lbl as person_type_lbl, 
                         participant.type as player_type, 
                         pt.lbl as player_type_lbl,
                         pt.desc as player_type_desc
@@ -56,8 +54,6 @@ const player_q = `SELECT
                     person p ON p.id = participant.person
                         JOIN
                     participant_type pt ON pt.id = participant.type
-                        JOIN
-                    person_type pert ON pert.id = p.type
                 WHERE 
                     activity = ?
                 FOR UPDATE`;
@@ -163,8 +159,6 @@ async function getBooking(connection, id, etag) {
             person_id: pinfo['person_id'],
             firstname: pinfo['firstname'],
             lastname: pinfo['lastname'],
-            person_type_id: pinfo['person_type_id'],
-            person_type_lbl: pinfo['person_type_lbl'],
             player_type: pinfo['player_type'],
             player_type_lbl: pinfo['player_type_lbl'],
             player_type_desc: pinfo['player_type_desc'],
