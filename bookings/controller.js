@@ -41,10 +41,12 @@ async function getBookingsForDate(date) {
         rt.label as person_role_type_label
       FROM participant p 
       JOIN person on person.id = p.person
+      JOIN club c on c.id = person.club
       LEFT JOIN membership m on m.person_id = p.person
       LEFT JOIN role r on r.id = m.role
       LEFT JOIN role_type rt on rt.id = r.type
       WHERE p.activity in ( ? ) 
+      AND ? BETWEEN m.valid_from AND m.valid_until
       ORDER BY activity FOR SHARE`;
 
   const activity_query = `SELECT 
@@ -121,7 +123,7 @@ async function getBookingsForDate(date) {
       const players_array = await sqlconnector.runQuery(
         connection,
         player_query,
-        [booking_ids]
+        [booking_ids,date]
       );
 
       await sqlconnector.runQuery(connection, "COMMIT", []);
@@ -416,8 +418,6 @@ async function getBookingDetails(id) {
         person_id: pinfo["person_id"],
         firstname: pinfo["firstname"],
         lastname: pinfo["lastname"],
-        person_type_id: pinfo["person_type_id"],
-        person_type_lbl: pinfo["person_type_lbl"],
         player_type: pinfo["player_type"],
         player_type_lbl: pinfo["player_type_lbl"],
         player_type_desc: pinfo["player_type_desc"],
