@@ -26,6 +26,19 @@ router.get('/', authGuard, (req, res, next) => {
 
 });
 
+router.get('/eventhosts', authGuard, (req, res, next) => {
+
+     controller.getEventHosts()
+     .then((hosts) => {
+          res.json(hosts)
+     }
+     )
+     .catch((err) => {
+          next(err)
+     }
+     )
+})
+
 /**
  * Route to get all active persons
  */
@@ -39,22 +52,6 @@ router.get('/active', authGuard, (req, res, next) => {
           next(err)
      })
 });
-
-/**
- * TO DO: REMOVE THIS ROUTE
- */
-// router.get('/eligible', authGuard, (req, res, next) => {
-
-//      controller.getEligiblePersons()
-//           .then((persons) => {
-//                res.json(persons)
-//           })
-//           .catch((err) => {
-//                next(err)
-//           })
-
-
-// })
 
 router.get('/members', authGuard, (req, res, next) => {
 
@@ -79,16 +76,6 @@ router.get('/members/active', authGuard, (req, res, next) => {
 
 
 });
-
-router.get('/members/managers', authGuard, (req, res, next) => {
-     controller.getClubManagers()
-          .then((managers) => {
-               res.json(managers)
-          })
-          .catch((err) => {
-               next(err)
-          })
-})
 
 router.get('/guests', authGuard, (req, res, next) => {
 

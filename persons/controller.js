@@ -101,6 +101,22 @@ async function getClubManagers() {
   }
 }
 
+async function getEventHosts() {
+  const connection = await sqlconnector.getConnection();
+  const query = `SELECT m.id, m.firstname, m.lastname 
+                FROM membership_view m JOIN club c ON c.id = m.club 
+                WHERE event_host = 1 
+                AND curtime() >= getDbTime(m.valid_from,c.time_zone) 
+                AND curtime() < getDbTime(m.valid_until,c.time_zone) 
+                AND club = ?`;
+  try {
+    const hosts = await sqlconnector.runQuery(connection, query, club_id);
+    return hosts;
+  } finally {
+    connection.release();
+  }
+}
+
 /**
  *
  * @returns {Promise<Array>} List of club guests
@@ -245,4 +261,5 @@ module.exports = {
   getActiveGuests,
   getActivePersons,
   getClubManagers,
+  getEventHosts
 };
