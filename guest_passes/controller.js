@@ -49,7 +49,12 @@ const addGuestPass = async (passinfo) => {
       c.id = ? and 
       date(convert_tz(now(),@@GLOBAL.time_zone,c.time_zone)) between cs.start and cs.end FOR SHARE`;
 
-  const role_check_q = `SELECT mv.role_type_id,guest_host FROM membership_view mv WHERE mv.id = ? and club = ? and DATE(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, ?)) BETWEEN mv.valid_from AND mv.valid_until FOR SHARE`;
+  const role_check_q = `SELECT mv.role_type_id,guest_host 
+                        FROM membership_view mv 
+                        JOIN club c ON c.id = mv.club
+                        WHERE mv.id = ? AND club = ? 
+                        AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) >= mv.valid_from 
+                        AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) < mv.valid_until FOR SHARE`;
 
   const guest_pass_typq_q = `SELECT label, valid_days, season_limit FROM guest_pass_type WHERE id = ? and club_id  = ? FOR SHARE`;
 

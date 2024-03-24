@@ -44,7 +44,11 @@ async function getEligiblePersons() {
  */
 async function getActivePersons() {
   const connection = await sqlconnector.getConnection();
-  const query = `SELECT m.* FROM membership_view m JOIN club c on c.id = m.club WHERE DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) BETWEEN m.valid_from AND m.valid_until and m.club = ?`;
+  const member_query = `SELECT m.* FROM membership_view m 
+                  JOIN club c on c.id = m.club 
+                  WHERE DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) >= m.valid_from 
+                  AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) < m.valid_until 
+                  and m.club = ?`;
   const passes_query = `SELECT gp.id,guest_id,gp.type,gpt.label FROM clubhouse.guest_pass gp 
     join person p on p.id = gp.guest_id 
     join club c on p.club = c.id 
@@ -67,7 +71,7 @@ async function getActivePersons() {
       return acc;
     }, {});
 
-    const persons = await sqlconnector.runQuery(connection, query, club_id);
+    const persons = await sqlconnector.runQuery(connection, member_query, club_id);
 
     //Loop through persons and add active pass info to each guest
     persons.forEach((person) => {
@@ -106,7 +110,8 @@ async function getEventHosts() {
   const query = `SELECT m.id, m.firstname, m.lastname 
                 FROM membership_view m JOIN club c ON c.id = m.club 
                 WHERE event_host = 1 
-                AND curtime() BETWEEN getDbTime(m.valid_from,c.time_zone) AND getDbTime(m.valid_until,c.time_zone) 
+                AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) >= m.valid_from 
+                AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) < m.valid_until
                 AND club = ?`;
   try {
     const hosts = await sqlconnector.runQuery(connection, query, club_id);

@@ -46,7 +46,8 @@ async function getBookingsForDate(date) {
       LEFT JOIN role r on r.id = m.role
       LEFT JOIN role_type rt on rt.id = r.type
       WHERE p.activity in ( ? ) 
-      AND ? BETWEEN m.valid_from AND m.valid_until
+      AND ? >= m.valid_from 
+      AND ? < m.valid_until 
       ORDER BY activity FOR SHARE`;
 
   const activity_query = `SELECT 
@@ -123,7 +124,7 @@ async function getBookingsForDate(date) {
       const players_array = await sqlconnector.runQuery(
         connection,
         player_query,
-        [booking_ids,date]
+        [booking_ids,date,date]
       );
 
       await sqlconnector.runQuery(connection, "COMMIT", []);
@@ -169,6 +170,7 @@ async function addBooking(request) {
   const OPCODE = "ADD_BOOKING";
 
   const players = request.body.players;
+  const booking_date = request.body.date;
 
   //Initialize a hashmap to store player ids and roles
   const playerTypeMap = new Map();
@@ -185,7 +187,15 @@ async function addBooking(request) {
   }
   //END
 
-  const person_check_q = `SELECT p.id,m.role FROM clubhouse.person p left join membership m on m.person_id = p.id WHERE p.id IN ? AND p.club = ? LOCK IN SHARE MODE`;
+  const person_check_q = `SELECT p.id,m.role 
+                          FROM clubhouse.person p 
+                          JOIN club c on c.id = p.club
+                          LEFT JOIN membership m on m.person_id = p.id
+                          WHERE p.id IN ? 
+                          AND p.club = ?
+                          AND ? >= m.valid_from 
+                          AND ? < m.valid_until 
+                          LOCK IN SHARE MODE`;
 
   const connection = await sqlconnector.getConnection();
 
@@ -197,8 +207,10 @@ async function addBooking(request) {
       const persons_result = await sqlconnector.runQuery(
         connection,
         person_check_q,
-        [[uniqueIds], CLUB_ID]
+        [[uniqueIds], CLUB_ID,booking_date,booking_date]
       );
+
+      console.log(persons_result);
 
       if (
         !(
@@ -285,6 +297,9 @@ async function addBooking(request) {
       throw error;
     }
   } catch (error) {
+
+    console.log(error);
+
     throw error instanceof RESTError
       ? error
       : new SQLErrorFactory.getError(OPCODE, error);
