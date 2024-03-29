@@ -3,7 +3,8 @@
   "packageManager": "yarn@3.3.0",
   "scripts": {
     "start": "node server.js",
-    "watch": "node --watch server.js"
+    "watch": "node --watch server.js",
+    "test": "mocha --recursive './tests/**/test.mjs'"
   },
   "dependencies": {
     "@google-cloud/logging": "^11.0.0",
@@ -28,7 +29,9 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "chai": "*",
+    "eslint": "^8.57.0",
+    "mocha": "*"
   },
   "resolutions": {
     "validator": "13.9.0"
