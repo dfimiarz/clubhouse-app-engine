@@ -45,9 +45,11 @@ const addGuestPass = async (passinfo) => {
       cs.start as season_start,
       cs.end as season_end 
     from club c join club_seasons cs on cs.club = c.id 
-    where 
-      c.id = ? and 
-      date(convert_tz(now(),@@GLOBAL.time_zone,c.time_zone)) between cs.start and cs.end FOR SHARE`;
+    WHERE
+      c.id = ?
+      AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) >= cs.start 
+      AND DATE(convert_tz(NOW(),@@GLOBAL.time_zone,c.time_zone)) < cs.end
+    FOR SHARE`;
 
   const role_check_q = `SELECT mv.role_type_id,guest_host 
                         FROM membership_view mv 
@@ -75,14 +77,16 @@ const addGuestPass = async (passinfo) => {
       }
 
       //Get club id and season info
+      // Season start is inclusive
       const season_start = club_info_res[0].season_start;
+      // Season end is exclusive
       const season_end = club_info_res[0].season_end;
       const time_zone = club_info_res[0].time_zone;
 
       const host_data_res = await sqlconnector.runQuery(
         connection,
         role_check_q,
-        [passinfo.host, club_id, time_zone]
+        [passinfo.host, club_id]
       );
 
       if (!(Array.isArray(host_data_res) && host_data_res.length === 1)) {
@@ -99,7 +103,7 @@ const addGuestPass = async (passinfo) => {
       const guest_data_res = await sqlconnector.runQuery(
         connection,
         role_check_q,
-        [passinfo.guest, club_id, time_zone]
+        [passinfo.guest, club_id]
       );
 
       if (!(Array.isArray(guest_data_res) && guest_data_res.length === 1)) {
@@ -169,7 +173,7 @@ const addGuestPass = async (passinfo) => {
       }
 
       //Pass is valid from beinging of the day
-      const valid_from = dayjs().tz("America/New_York").startOf("day");
+      const valid_from = dayjs().tz(time_zone).startOf("day");
 
       //Throw error if valid_from is before season start
       if (valid_from.isBefore(season_start)) {
@@ -181,8 +185,11 @@ const addGuestPass = async (passinfo) => {
 
       //Format both dates to YYYY-MM-DD HH:mm:ss
       const v_f_formatted = valid_from.format("YYYY-MM-DD HH:mm:ss");
+
+      // Check if valid_to is after season end and format accordingly. 
+      // Season end is exclusive so we need to subtract 1 second from the season end date
       const v_t_formatted = valid_to.isAfter(season_end)
-        ? dayjs(season_end).format("YYYY-MM-DD HH:mm:ss")
+        ? dayjs(season_end).tz(time_zone).subtract(1, 'second').format("YYYY-MM-DD HH:mm:ss")
         : valid_to.format("YYYY-MM-DD HH:mm:ss");
 
       const guest_pass_res = await sqlconnector.runQuery(
