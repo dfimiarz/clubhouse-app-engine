@@ -4,7 +4,7 @@
   "scripts": {
     "start": "node server.js",
     "watch": "node --watch server.js",
-    "test": "mocha --recursive './tests/**/test.mjs'"
+    "test": "mocha --require './tests/hooks.mjs' --recursive  './tests/**/*.mjs'"
   },
   "dependencies": {
     "@google-cloud/logging": "^11.0.0",
@@ -29,9 +29,9 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
-    "chai": "*",
+    "chai": "^5.1.0",
     "eslint": "^8.57.0",
-    "mocha": "*"
+    "mocha": "^10.4.0"
   },
   "resolutions": {
     "validator": "13.9.0"
