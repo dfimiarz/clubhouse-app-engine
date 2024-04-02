@@ -164,29 +164,46 @@ const memberActivitiesProcessor = async function (name, from, to) {
 
 }
 
-const guestInfoProcessor = async function (name, from, to) {
+/**
+ * 
+ * @param {String} name Processor name
+ * @param {String} from Date in ISO format
+ * @param {String} to Date in ISO format
+ * @returns 
+ */
+const guestPassesProcessor = async function (name, from, to) {
 
-    const guest_activity_q =
+    //Add begining and end of day to from and to
+    const from_dt = dayjs(from).startOf('day').format('YYYY-MM-DDTHH:mm:ss');
+    const to_dt = dayjs(to).endOf('day').format('YYYY-MM-DDTHH:mm:ss');
+
+    const passes_q =
         `SELECT 
-            ga.id as activation_id,
-            DATE_FORMAT(ga.active_date, GET_FORMAT(DATE, 'ISO')) AS active_date,
+            gp.id,
+            UNIX_TIMESTAMP(gp.created) as created_utc,
+            DATE_FORMAT(CONVERT_TZ(gp.created,'UTC',c.time_zone),'%m/%d/%y %h:%i %p') as created,
+            DATE_FORMAT(valid_from, '%m/%d/%y %h:%i %p') as valid_from,
+            DATE_FORMAT(valid_to, '%m/%d/%y %h:%i %p') as valid_to,
             concat(host.firstname," ",host.lastname) as host,
-            concat(guest.firstname," ",guest.lastname) as guest
-        FROM 
-            guest_activation ga JOIN
-            person as host on host.id = ga.member JOIN
-            person as guest on guest.id = ga.guest
-        WHERE
-            status = 1 and
-            active_date between ? and ?
-            and host.club = ?
-            and guest.club = ?`;
+            concat(guest.firstname," ",guest.lastname) as guest,
+            gp.type as pass_type_id,
+            guest_pass_type.label as pass_type_label
+        FROM guest_pass gp
+        JOIN person as guest on gp.guest_id = guest.id
+        JOIN person as host on gp.member_id = host.id
+        JOIN guest_pass_type on gp.type = guest_pass_type.id
+        JOIN club c on host.club = c.id
+        WHERE 
+            valid_from < ? AND valid_to > ?
+            AND valid = 1
+            AND host.club = ? 
+        ORDER BY gp.created DESC`;
 
         const connection = await sqlconnector.getConnection();
 
         try {
     
-            const result = await sqlconnector.runQuery(connection, guest_activity_q, [from, to, CLUB_ID, CLUB_ID]);
+            const result = await sqlconnector.runQuery(connection, passes_q, [to_dt, from_dt, CLUB_ID]);
     
             if (!Array.isArray(result)) {
                 throw new Error("Unable to retrieve report data");
@@ -194,10 +211,15 @@ const guestInfoProcessor = async function (name, from, to) {
     
             return result.map(row => {
                 return {
-                    activation_id: row.activation_id,
-                    active_date: row.active_date,
+                    pass_id: row.id,
+                    created: row.created,
+                    created_utc: row.created_utc,
+                    valid_from: row.valid_from,
+                    valid_to: row.valid_to,
                     host: row.host,
-                    guest: row.guest
+                    guest: row.guest,
+                    pass_type_id: row.pass_type_id,
+                    pass_type_label: row.pass_type_label
                 }
             });
     
@@ -217,6 +239,6 @@ const guestInfoProcessor = async function (name, from, to) {
 module.exports = {
     playerStatsProcessor,
     memberActivitiesProcessor,
-    guestInfoProcessor,
+    guestPassesProcessor,
 
 }
