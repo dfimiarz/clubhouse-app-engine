@@ -31,7 +31,7 @@ async function getBookingsForDate(date) {
     ` SELECT 
         p.activity,
         p.person as person_id,
-        p.type as player_type,
+        p.type as player_type_id,
         p.status,
         person.firstname,
         person.lastname,
@@ -137,7 +137,7 @@ async function getBookingsForDate(date) {
           bookings.delete(activity_id);
           activity.players.push({
             person_id: player.person_id,
-            type: player.player_type,
+            type_id: player.player_type_id,
             status: player.status,
             firstname: player.firstname,
             lastname: player.lastname,
@@ -209,8 +209,6 @@ async function addBooking(request) {
         person_check_q,
         [[uniqueIds], CLUB_ID,booking_date,booking_date]
       );
-
-      console.log(persons_result);
 
       if (
         !(
@@ -298,8 +296,6 @@ async function addBooking(request) {
     }
   } catch (error) {
 
-    console.log(error);
-
     throw error instanceof RESTError
       ? error
       : new SQLErrorFactory.getError(OPCODE, error);
@@ -358,7 +354,7 @@ async function getBookingDetails(id) {
                     person as person_id, 
                     p.firstname, 
                     p.lastname,
-                    participant.type as player_type, 
+                    participant.type as player_type_id, 
                     pt.lbl as player_type_lbl,
                     pt.desc as player_type_desc
                 FROM
@@ -433,7 +429,7 @@ async function getBookingDetails(id) {
         person_id: pinfo["person_id"],
         firstname: pinfo["firstname"],
         lastname: pinfo["lastname"],
-        player_type: pinfo["player_type"],
+        player_type_id: pinfo["player_type_id"],
         player_type_lbl: pinfo["player_type_lbl"],
         player_type_desc: pinfo["player_type_desc"],
       };
@@ -442,7 +438,6 @@ async function getBookingDetails(id) {
 
     return booking;
   } catch (error) {
-    console.log(error);
     throw error instanceof RESTError
       ? error
       : new SQLErrorFactory.getError(OPCODE, error);

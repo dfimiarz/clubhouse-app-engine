@@ -132,7 +132,6 @@ router.get('/:id', authGuard, (req, res, next) => {
      checkBookingPermissions,
      // eslint-disable-next-line no-unused-vars
      (req, res, next) => {
-
           //Fiter out values that are needed by the front end
           const filtered_booking = (({ start, end, permissions, booking_type_desc, date, court_name, bumpable, notes, id, etag, players, utc_start, utc_end, utc_req_time, type }) => {
                return {

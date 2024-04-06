@@ -35,7 +35,7 @@ Player properties
 
 person_id,
 member_role_id,
-player_type_id
+player_type_id,
 
 */
 

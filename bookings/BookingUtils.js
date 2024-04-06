@@ -45,7 +45,7 @@ const player_q = `SELECT
                         person as person_id, 
                         p.firstname, 
                         p.lastname,
-                        participant.type as player_type, 
+                        participant.type as player_type_id, 
                         pt.lbl as player_type_lbl,
                         pt.desc as player_type_desc
                 FROM
@@ -159,7 +159,7 @@ async function getBooking(connection, id, etag) {
             person_id: pinfo['person_id'],
             firstname: pinfo['firstname'],
             lastname: pinfo['lastname'],
-            player_type: pinfo['player_type'],
+            player_type_id: pinfo['player_type_id'],
             player_type_lbl: pinfo['player_type_lbl'],
             player_type_desc: pinfo['player_type_desc'],
         }
