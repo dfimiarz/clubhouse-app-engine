@@ -29,7 +29,7 @@ function validatePatchRequest(req,res,next){
     const id = req.params.id ? req.params.id: null
 
     if( id == null){
-        return next(new Error("Request ID missing"))
+        return next(new Error("Booking ID missing"))
     }
 
     const cmd = req.body.cmd ? req.body.cmd: null

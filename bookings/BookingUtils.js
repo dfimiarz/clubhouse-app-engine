@@ -37,8 +37,7 @@ const booking_q = `SELECT c.id AS court_id,
                             JOIN
                         activity_type at ON at.id = a.type
                     WHERE
-                        a.id = ? and cl.id = ? and  MD5(a.updated) = ?
-                    FOR UPDATE`;
+                        a.id = ? and cl.id = ?`;
 
 const player_q = `SELECT 
                         activity, 
@@ -55,8 +54,7 @@ const player_q = `SELECT
                         JOIN
                     participant_type pt ON pt.id = participant.type
                 WHERE 
-                    activity = ?
-                FOR UPDATE`;
+                    activity = ?`;
 
                 
 
@@ -101,23 +99,49 @@ const overlap_check_q = `
     AND date = ?
     AND active = 1 FOR UPDATE`;
 
+const transactionType = {
+    NO_TRANSACTION: 0,
+    READ_TRANSACTION: 1,
+    WRITE_TRANSACTION: 2
+}
+
+/**
+ * 
+ * @param {String} query SQL query to format
+ * @param {Number} t_type Transaction type as defined in transactionType
+ * @returns {String} SQL query with transaction specific formatting
+ */
+function formatQuery(query, t_type) {
+    switch (t_type) {
+        case transactionType.READ_TRANSACTION:
+            //Add LOCK IN SHARE MODE to query text if read transaction
+            return query + " LOCK IN SHARE MODE";
+        case transactionType.WRITE_TRANSACTION:
+            //Add FOR UPDATE to query text if write transaction
+            return query + " FOR UPDATE";
+        default:
+            //Return query as is if no transaction
+            return query;
+    }
+}
+
 
 /**
  * 
  * @param {*} connection 
- * @param {*} id 
- * @param {*} etag 
+ * @param {Number} id Booking id 
+ * @param {Number} t_type Type of transaction the query is running in
  * 
- * This function must run within a transaction
  */
-async function getBooking(connection, id, etag) {
+async function getBooking(connection, id, t_type = transactionType.NO_TRANSACTION) {
 
-    const booking_result = await sqlconnector.runQuery(connection, booking_q, [id, CLUB_ID, etag]);
-    const players_result = await sqlconnector.runQuery(connection, player_q, [id]);
+    const booking_result = await sqlconnector.runQuery(connection, formatQuery(booking_q,t_type), [id, CLUB_ID]);
 
-    if (!(Array.isArray(booking_result) && booking_result.length === 1)) {
+    if (!(Array.isArray(booking_result) || booking_result.length === 0)) {
         return null;
     }
+
+    const players_result = await sqlconnector.runQuery(connection, formatQuery(player_q, t_type), [id]);
 
     if (!Array.isArray(players_result) || players_result.length === 0) {
         return null;
@@ -271,5 +295,6 @@ module.exports = {
     getBooking,
     insertBooking,
     getNewBooking,
-    checkOverlap
+    checkOverlap,
+    transactionType,
 }

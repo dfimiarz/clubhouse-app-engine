@@ -8,6 +8,8 @@ const {
   getNewBooking,
   insertBooking,
   checkOverlap,
+  getBooking,
+  transactionType,
 } = require("./BookingUtils");
 const {
   cloudLog,
@@ -306,138 +308,28 @@ async function addBooking(request) {
 
 /**
  *
- * @param { int } Session id
+ * @param { Number } Session id
  */
-async function getBooking(id) {
+async function getBookingData(id) {
   const OPCODE = "GET_BOOKING";
-
-  const booking_q = `SELECT c.id AS court_id,
-                        UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.start),cl.time_zone,@@GLOBAL.time_zone)) AS utc_start,
-                        UNIX_TIMESTAMP(CONVERT_TZ(CONCAT(a.date, ' ', a.end),cl.time_zone,@@GLOBAL.time_zone)) AS utc_end,
-                        UNIX_TIMESTAMP(a.created) AS utc_created,
-                        UNIX_TIMESTAMP(a.updated) AS utc_updated,
-                        UNIX_TIMESTAMP(CONVERT_TZ(a.date,cl.time_zone,@@GLOBAL.time_zone)) AS utc_day_start,
-                        UNIX_TIMESTAMP(NOW()) AS utc_req_time,
-                        CAST(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, cl.time_zone) AS DATE) + 0 AS loc_req_date,
-                        CAST(CONVERT_TZ(NOW(), @@GLOBAL.time_zone, cl.time_zone) AS TIME) AS loc_req_time,
-                        DATE_FORMAT(a.date,"%Y-%m-%d" ) as date,
-                        a.date + 0 as numeric_date,
-                        a.start as start,
-                        a.end as end,
-                        a.active,
-                        a.type,
-                        at.desc AS booking_type_desc,
-                        at.lbl AS booking_type_lbl,
-                        a.bumpable,
-                        a.created,
-                        a.updated,
-                        a.notes,
-                        a.id,
-                        MD5(a.updated) AS etag,
-                        c.name as court_name,
-                        cl.time_zone,
-                        cl.id as club_id
-                    FROM
-                        activity a
-                            JOIN
-                        court c ON a.court = c.id
-                            JOIN
-                        club cl ON cl.id = c.club
-                            JOIN
-                        activity_type at ON at.id = a.type
-                    WHERE
-                        a.id = ? and cl.id = ?
-                    LOCK IN SHARE MODE`;
-
-  const player_q = `SELECT 
-                    activity, 
-                    person as person_id, 
-                    p.firstname, 
-                    p.lastname,
-                    participant.type as player_type_id, 
-                    pt.lbl as player_type_lbl,
-                    pt.desc as player_type_desc
-                FROM
-                    participant
-                        JOIN
-                    person p ON p.id = participant.person
-                        JOIN
-                    participant_type pt ON pt.id = participant.type
-                WHERE 
-                    activity = ?
-                LOCK IN SHARE MODE    
-                `;
 
   const connection = await sqlconnector.getConnection();
 
   try {
     await sqlconnector.runQuery(connection, "START TRANSACTION", []);
 
-    const booking_result = await sqlconnector.runQuery(connection, booking_q, [
-      id,
-      CLUB_ID,
-    ]);
-    const players_result = await sqlconnector.runQuery(connection, player_q, [
-      id,
-    ]);
+    const booking = await getBooking(connection, id, transactionType.READ_TRANSACTION);
 
     await sqlconnector.runQuery(connection, "COMMIT", []);
 
-    if (!(Array.isArray(booking_result) && booking_result.length === 1)) {
+    if (!booking) {
       cloudLog(loglevels.error, `Booking ${id} not found`);
       throw new RESTError(404, "Booking not found");
     }
 
-    if (!Array.isArray(players_result) || players_result.length === 0) {
-      cloudLog(loglevels.error, `Players for booking ${id} not found`);
-      throw new RESTError(500, "Players not found");
-    }
-
-    const booking = {
-      id: booking_result[0]["id"],
-      utc_start: booking_result[0]["utc_start"],
-      utc_end: booking_result[0]["utc_end"],
-      utc_day_start: booking_result[0]["utc_day_start"],
-      utc_req_time: booking_result[0]["utc_req_time"],
-      loc_req_date: booking_result[0]["loc_req_date"],
-      loc_req_time: booking_result[0]["loc_req_time"],
-      utc_created: booking_result[0]["utc_created"],
-      utc_updated: booking_result[0]["utc_updated"],
-      date: booking_result[0]["date"],
-      numeric_date: booking_result[0]["numeric_date"],
-      start: booking_result[0]["start"],
-      end: booking_result[0]["end"],
-      active: booking_result[0]["active"],
-      type: booking_result[0]["type"],
-      booking_type_desc: booking_result[0]["booking_type_desc"],
-      booking_type_lbl: booking_result[0]["booking_type_lbl"],
-      bumpable: booking_result[0]["bumpable"],
-      created: booking_result[0]["created"],
-      updated: booking_result[0]["updated"],
-      notes: booking_result[0]["notes"],
-      etag: booking_result[0]["etag"],
-      court_id: booking_result[0]["court_id"],
-      court_name: booking_result[0]["court_name"],
-      time_zone: booking_result[0]["time_zone"],
-      club_id: booking_result[0]["club_id"],
-      players: [],
-      permissions: [],
-    };
-
-    players_result.forEach((pinfo) => {
-      const player = {
-        person_id: pinfo["person_id"],
-        firstname: pinfo["firstname"],
-        lastname: pinfo["lastname"],
-        player_type_id: pinfo["player_type_id"],
-        player_type_lbl: pinfo["player_type_lbl"],
-        player_type_desc: pinfo["player_type_desc"],
-      };
-      booking.players.push(player);
-    });
-
     return booking;
   } catch (error) {
+    console.log(error);
     throw error instanceof RESTError
       ? error
       : new SQLErrorFactory.getError(OPCODE, error);
@@ -498,7 +390,7 @@ async function getOverlappingBookings(court, date, start, end) {
 
 module.exports = {
   addBooking,
-  getBooking,
+  getBookingData,
   processPatchCommand,
   getBookingsForDate,
   getOverlappingBookings,

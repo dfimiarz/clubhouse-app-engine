@@ -1,14 +1,17 @@
 const sqlconnector = require('../db/SqlConnector')
 const RESTError = require('./../utils/RESTError');
 const { checkPermission } = require('./permissions/BookingPermissions');
-const { getBooking, insertBooking, getNewBooking, checkOverlap } = require('./BookingUtils');
+const { getBooking, insertBooking, getNewBooking, checkOverlap, transactionType } = require('./BookingUtils');
 const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const e = require('express');
 
 const CLUB_ID = process.env.CLUB_ID;
 
 
 
 async function endSession(id, cmd) {
+
+    const etag = cmd.hash;
 
     const connection = await sqlconnector.getConnection();
 
@@ -21,7 +24,7 @@ async function endSession(id, cmd) {
 
         try {
 
-            const booking = await getBooking(connection, id, cmd.hash);
+            const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
                 cloudLog(loglevels.error, "Unable to end. Booking access error:  " + JSON.stringify({ id: id, hash: cmd.hash }));
@@ -31,6 +34,11 @@ async function endSession(id, cmd) {
             if( booking.club_id != CLUB_ID){
                 cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
+            }
+
+            if( booking.etag != etag){
+                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
             //Check permissions
@@ -62,6 +70,8 @@ async function endSession(id, cmd) {
 
 async function removeSession(id, cmd) {
 
+    const etag = cmd.hash;
+
     const remove_activity_q = `UPDATE activity SET active = 0 where id = ?`
 
     const connection = await sqlconnector.getConnection()
@@ -70,7 +80,7 @@ async function removeSession(id, cmd) {
         await sqlconnector.runQuery(connection, "START TRANSACTION", [])
 
         try {
-            const booking = await getBooking(connection, id, cmd.hash);
+            const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
                 cloudLog(loglevels.error, "Unable to cancel. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
@@ -80,6 +90,11 @@ async function removeSession(id, cmd) {
             if( booking.club_id != CLUB_ID){
                 cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
+            }
+
+            if( booking.etag != etag){
+                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
             //Check permissions
@@ -114,6 +129,7 @@ async function removeSession(id, cmd) {
 
 async function changeSessionTime(id, cmd) {
 
+    const etag = cmd.hash;
 
     const connection = await sqlconnector.getConnection()
 
@@ -125,7 +141,7 @@ async function changeSessionTime(id, cmd) {
         await sqlconnector.runQuery(connection, "START TRANSACTION READ WRITE", [])
 
         try {
-            const booking = await getBooking(connection, id, cmd.hash);
+            const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
                 cloudLog(loglevels.error, "Unable to change time. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
@@ -135,6 +151,11 @@ async function changeSessionTime(id, cmd) {
             if( booking.club_id != CLUB_ID){
                 cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
+            }
+
+            if( booking.etag != etag){
+                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
             //Check permissions to move
@@ -214,6 +235,8 @@ async function changeSessionTime(id, cmd) {
 
 async function changeCourt(id, cmd) {
 
+    const etag = cmd.hash;
+
     const connection = await sqlconnector.getConnection();
 
     const new_court = cmd.court;
@@ -223,7 +246,7 @@ async function changeCourt(id, cmd) {
         await sqlconnector.runQuery(connection, "START TRANSACTION READ WRITE", []);
 
         try {
-            const booking = await getBooking(connection, id, cmd.hash);
+            const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
                 cloudLog(loglevels.error, "Unable to change court. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
@@ -233,6 +256,11 @@ async function changeCourt(id, cmd) {
             if( booking.club_id != CLUB_ID){
                 cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
+            }
+
+            if( booking.etag != etag){
+                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
             //Check permissions to move

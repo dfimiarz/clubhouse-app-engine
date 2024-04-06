@@ -120,7 +120,7 @@ router.get('/:id', authGuard, (req, res, next) => {
 
      const id = req.params.id ? req.params.id : null
 
-     matchcontroller.getBooking(id)
+     matchcontroller.getBookingData(id)
           .then((booking) => {
                res.locals.booking = booking;
                next()
@@ -184,49 +184,6 @@ router.patch('/:id', authGuard, validatePatchRequest,
                })
 
      })
-
-// const generateSendSseCallback = function (res) {
-//      return function (message) {
-//           console.log(message)
-//           res.write(`data: ${message}\n\n`)
-//      }
-// }
-
-
-// router.get('/test', authGuard, (req, res) => {
-//      res.writeHead(200, {
-//           'Content-Type': 'text/event-stream',
-//           'Cache-Control': 'no-cache',
-//           'Connection': 'keep-alive',
-//           'X-Accel-Buffering': 'no'
-//      })
-
-//      res.write("Test")
-// })
-
-// router.get('/watch', authGuard, (req, res) => {
-
-//      res.writeHead(200, {
-//           'Content-Type': 'text/event-stream',
-//           'Cache-Control': 'no-cache',
-//           'Connection': 'keep-alive',
-//           'X-Accel-Buffering': 'no'
-//      })
-
-//      res.write("Test")
-
-//      try {
-//           // const sendFunc = generateSendSseCallback(res)
-//           // MatchEventEmitter.on('matchadded', sendFunc )
-//           req.on('close', () => {
-//                console.log("closed")
-//                // MatchEventEmitter.removeListener('matchadded',sendFunc)
-//           })
-//      }
-//      catch (err) {
-//           res.status(500)
-//      }
-// })
 
 module.exports = router
 
