@@ -1,9 +1,9 @@
 const sqlconnector = require('../db/SqlConnector')
 const RESTError = require('./../utils/RESTError');
 const { checkPermission } = require('./permissions/BookingPermissions');
-const { getBooking, insertBooking, getNewBooking, checkOverlap, transactionType } = require('./BookingUtils');
+const { getBooking, insertBooking, getNewBooking, checkOverlap } = require('./BookingUtils');
 const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
-const e = require('express');
+const { transactionType } = require("../utils/dbutils");
 
 const CLUB_ID = process.env.CLUB_ID;
 

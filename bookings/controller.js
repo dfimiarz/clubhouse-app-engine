@@ -9,8 +9,8 @@ const {
   insertBooking,
   checkOverlap,
   getBooking,
-  transactionType,
 } = require("./BookingUtils");
+const { transactionType } = require("../utils/dbutils");
 const {
   cloudLog,
   cloudLogLevels: loglevels,
