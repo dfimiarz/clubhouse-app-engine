@@ -308,7 +308,7 @@ async function addBooking(request) {
  *
  * @param { int } Session id
  */
-async function getBookingDetails(id) {
+async function getBooking(id) {
   const OPCODE = "GET_BOOKING";
 
   const booking_q = `SELECT c.id AS court_id,
@@ -498,7 +498,7 @@ async function getOverlappingBookings(court, date, start, end) {
 
 module.exports = {
   addBooking,
-  getBookingDetails,
+  getBooking,
   processPatchCommand,
   getBookingsForDate,
   getOverlappingBookings,

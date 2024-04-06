@@ -120,7 +120,7 @@ router.get('/:id', authGuard, (req, res, next) => {
 
      const id = req.params.id ? req.params.id : null
 
-     matchcontroller.getBookingDetails(id)
+     matchcontroller.getBooking(id)
           .then((booking) => {
                res.locals.booking = booking;
                next()
