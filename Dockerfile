@@ -1,12 +1,13 @@
-FROM node:19
+FROM node:21-alpine
 
-WORKDIR /app
+USER node
 
-COPY package*.json ./
+WORKDIR /home/node/app
 
-RUN npm install
+COPY --chown=node . .
 
-COPY ./ .
+RUN yarn install --production && yarn cache clean
+
+CMD ["yarn", "start"]
 
 EXPOSE 8080
-CMD ["node","server.js"]
