@@ -53,7 +53,7 @@ const localLogger = winston.createLogger({
  * @param {string|Object} message - The message to be logged.
  */
 function log(appLogLevel, message) {
-  if (process.env.NODE_ENV === "production") {
+  if (['production', 'staging'].includes(process.env.NODE_ENV)) {
     //Get cloud log level from npm log level
     const cloudLogLevel = cloudLogLevels[appLogLevel] || cloudLogLevels.default;
 
