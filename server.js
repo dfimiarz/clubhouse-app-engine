@@ -13,10 +13,7 @@ const {
   checkGeoAuth,
   checkUserRole,
 } = require("./middleware/clientauth");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./utils/logger/logger");
+const { log, appLogLevels } = require('./utils/logger/logger');
 
 app.set("trust proxy", true);
 
@@ -70,7 +67,7 @@ app.use((err, _req, res, _next) => {
   if (err instanceof RESTError) {
     res.status(err.status).json(err.payload);
   } else {
-    cloudLog(loglevels.error, err.message);
+    log(appLogLevels.ERROR, err.message);
     res.status(err.status || 500).json(err.message || "Something went wrong");
   }
 });

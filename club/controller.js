@@ -1,7 +1,7 @@
 const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
 const { storeJSON, getJSON } = require('./../db/RedisConnector');
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -66,7 +66,7 @@ async function getClubInfo() {
 
     }
     catch (error) {
-        cloudLog(loglevels.error, `Error getting club info: ${error.message}`);
+        log(appLogLevels.ERROR, `Error getting club info: ${error.message}`);
         throw new RESTError(500, "Failed loading club info");
     }
     finally {

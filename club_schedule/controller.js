@@ -1,8 +1,7 @@
 const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
 const { getJSON, storeJSON } = require('./../db/RedisConnector')
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
-
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const CLUB_ID = process.env.CLUB_ID;
 
 /**
@@ -159,7 +158,7 @@ async function getClubSchedules() {
         cachedSchedule = await getJSON(redisKey);
     }
     catch (error) {
-        cloudLog(loglevels.error, `Error retrieving club schedules from cache: ${error}`);
+        log(appLogLevels.ERROR, `Error retrieving club schedules from cache: ${error}`)
     }
 
     if (cachedSchedule) {
@@ -265,7 +264,7 @@ async function getClubSchedules() {
             await storeJSON(redisKey, result);
         }
         catch (error) {
-            cloudLog(loglevels.error, `Error storing club schedules to cache: ${error}`);
+            log(appLogLevels.ERROR, `Error storing club schedules to cache: ${error}`)
         }
 
         return result;
@@ -273,7 +272,7 @@ async function getClubSchedules() {
 
     }
     catch (error) {
-        cloudLog(loglevels.error, `Error retrieving club schedules: ${error}`);
+        log(appLogLevels.ERROR, `Error retrieving club schedules: ${error}`);
         throw new RESTError(500, "Failed fetching club schedules");
     }
     finally {

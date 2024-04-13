@@ -1,69 +1,117 @@
-const winston = require('winston');
-const { Logging } = require('@google-cloud/logging');
+const winston = require("winston");
+const { Logging } = require("@google-cloud/logging");
 
-const cloudLogLevels = {
+//Log levels for the application
+const appLogLevels = Object.freeze({
+  DEFAULT: "info",
+  EMERG: "emerg",
+  ALERT: "alert",
+  CRIT: "crit",
+  ERROR: "error",
+  WARNING: "warning",
+  NOTICE: "notice",
+  INFO: "info",
+  DEBUG: "debug",
+});
+
+//Log levels for the cloud, mapped to appLogLevels
+const cloudLogLevels = Object.freeze({
   default: "DEFAULT",
-  debug : "DEBUG",
-  info: "INFO",
-  warning : "WARNING",
+  emerg: "EMERGENCY",
+  alert: "ALERT",
+  crit: "CRITICAL",
   error: "ERROR",
-  emergancy : "EMERGENCY"
-}
+  warning: "WARNING",
+  notice: "NOTICE",
+  info: "INFO",
+  debug: "DEBUG",
+});
 
 //Get log name from env var
 const logName = process.env.GCLOUD_LOG_NAME;
 const projectId = process.env.GCLOUD_PROJECT_ID;
 
-const logging = new Logging({ projectId});
+const logging = new Logging({ projectId });
 
 // Selects the log to write to
-const log = logging.log(logName)
+const gcloudLogger = logging.log(logName);
 
 const localLogger = winston.createLogger({
-  level: 'debug',
+  levels: winston.config.syslog.levels,
   transports: [
-    new winston.transports.Console()
-  ]
+    new winston.transports.Console({
+      format: winston.format.json(),
+    }),
+  ],
 });
 
+/**
+ * Logs a message based on the specified log level
+ * If the environment is production, the message is logged to the cloud.
+ * Otherwise, the message is logged locally.
+ * @param {string} appLogLevel - The app log level.
+ * @param {string|Object} message - The message to be logged.
+ */
+function log(appLogLevel, message) {
+  if (process.env.NODE_ENV === "production") {
+    //Get cloud log level from npm log level
+    const cloudLogLevel = cloudLogLevels[appLogLevel] || cloudLogLevels.default;
 
-function cloudLog(level,message, resource_type = 'global'){
+    cloudLog(cloudLogLevel, message);
+  } else {
+    localLog(appLogLevel, message);
+  }
+}
 
-  const lvl = Object.values(cloudLogLevels).includes(level) ? level: cloudLogLevels['default'];
+/**
+ *
+ * @param {String} cloudLogLevel Log level from cloudLogLevels
+ * @param {String|Object} message String or object to log
+ * @param {String} resource_type Resource type for the log. Default is "global"
+ */
+function cloudLog(cloudLogLevel, message, resource_type = "global") {
+  //Check cloudLogLevel against cloudLogLevels
+  const cloglvl = Object.values(cloudLogLevels).includes(cloudLogLevel)
+    ? cloudLogLevel
+    : "DEFAULT";
 
   const metadata = {
-    severity: lvl,
+    severity: cloglvl,
     // A default log resource is added for some GCP environments
     // This log resource can be overwritten per spec:
     // https://cloud.google.com/logging/docs/reference/v2/rest/v2/MonitoredResource
     resource: {
-      type: resource_type
-    }
+      type: resource_type,
+    },
   };
-  
-  const entry = log.entry(metadata, message);
 
-  log.write(entry).catch(err => {
-    localLog('error',"GCLOUD log error: " + err.message);
-  })
+  const logentry = gcloudLogger.entry(metadata, message);
 
-  if( process.env.NODE_ENV !== 'production' ){
-    localLog("info",message);
-  }
-  
+  gcloudLogger.write(logentry).catch((err) => {
+    localLog(appLogLevels.ERROR, "GCLOUD log error: " + err.message);
+  });
 }
 
-function localLog(level,message,meta = null){
+/**
+ * 
+ * @param {String} level appLogLevels
+ * @param {Strting|Object} message 
+ * @param {*} meta 
+ * @returns 
+ * @throws Error if invalid log level
+ */
+function localLog(level, message, meta = null) {
+  //Check if level is in appLogLevels, assign default if not
+  const loglevel = Object.values(appLogLevels).includes(level)
+    ? level
+    : appLogLevels.DEFAULT;
 
-  if( ! Object.prototype.hasOwnProperty.call(winston.config.syslog.levels,level)){
-    localLogger.log('error',`Log level "${ level }" not supported`);
-    return
-  }
-
-  localLogger.log(level,message,meta);
-
+  localLogger.log(level, message, meta);
 }
 
 module.exports = {
-  cloudLog, localLog, cloudLogLevels
-}
+  cloudLog,
+  localLog,
+  log,
+  appLogLevels,
+};

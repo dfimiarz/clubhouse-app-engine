@@ -2,10 +2,7 @@ const express = require("express");
 const controller = require("./controller");
 const { authGuard } = require("../middleware/clientauth");
 const { body, validationResult } = require("express-validator");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./../utils/logger/logger");
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const RESTError = require("./../utils/RESTError");
 
 const router = express.Router();
@@ -24,10 +21,7 @@ router.post(
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      cloudLog(
-        loglevels.error,
-        "Guest pass activation error: " + JSON.stringify(errors.array())
-      );
+      log(appLogLevels.ERROR, "Guest pass activation error: " + JSON.stringify(errors.array()));
       return next(
         new RESTError(422, {
           fielderrors: errors.array({ onlyFirstError: true }),

@@ -1,6 +1,6 @@
 const dayjs = require('dayjs');
 const sqlconnector = require('../db/SqlConnector');
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const RESTError = require('./../utils/RESTError');
 
 const CLUB_ID = process.env.CLUB_ID;
@@ -57,7 +57,7 @@ const playerStatsProcessor = async (name, from, to) => {
         return Array.from(resultMap, ([date, value]) => ({ date: date, time_played: value.time_played, player_count: value.player_count }));
 
     } catch (err) {
-        cloudLog(loglevels.error, `Error generating report '${name}': ${err.message}`);
+        log(appLogLevels.ERROR, `Error generating report '${name}': ${err.message}`);
         throw new RESTError(500, "Request failed");
 
     } finally {
@@ -155,7 +155,7 @@ const memberActivitiesProcessor = async function (name, from, to) {
         });
 
     } catch (err) {
-        cloudLog(loglevels.error, `Error generating report '${name}': ${err.message}`);
+        log(appLogLevels.ERROR, `Error generating report '${name}': ${err.message}`)
         throw new RESTError(500, "Request failed");
 
     } finally {
@@ -224,7 +224,7 @@ const guestPassesProcessor = async function (name, from, to) {
             });
     
         } catch (err) {
-            cloudLog(loglevels.error, `Error generating report '${name}': ${err.message}`);
+            log(appLogLevels.ERROR, `Error generating report '${name}': ${err.message}`);
             throw new RESTError(500, "Request failed");
     
         } finally {

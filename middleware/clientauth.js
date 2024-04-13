@@ -1,7 +1,7 @@
 const {getAuth} = require('firebase-admin/auth')
 const app = require('../firebaseadmin/firebaseadmin')
 const RESTError = require('../utils/RESTError')
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const { getUserRole } = require('./../auth/controller');
 const club_id = process.env.CLUB_ID;
 
@@ -48,7 +48,7 @@ async function checkUserRole(req, res, next) {
             next();
         }
     } catch (err) {
-        cloudLog(loglevels.error, `User role error: ${err.message} `);
+        log(appLogLevels.ERROR, `User role error: ${err.message} `);
         next(new Error(`Unable to verify user role: ${err.message}`));
     }
 }
@@ -77,7 +77,7 @@ async function checkUserAuth(req, res, next) {
             next()
         }
         catch (err) {
-            cloudLog(loglevels.error, `User token error: ${err} `);
+            log(appLogLevels.ERROR, `User token error: ${err}`)
             next(new Error("Unable to verify auth token"));
         }
     }
@@ -131,7 +131,7 @@ function getTokenFromHeaders(req) {
  */
 function authGuard(req, res, next) {
     if (!(res.locals.geoauth === true || res.locals.userauth === true)) {
-        cloudLog(loglevels.error, `Not authorized. IP: ${req.ip} `);
+        log(appLogLevels.ERROR, `Not authorized. IP: ${req.ip} `);
         next(new RESTError(401, "Not authorized"));
     }
     else {

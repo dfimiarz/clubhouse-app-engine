@@ -1,4 +1,4 @@
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const RESTError = require('./../utils/RESTError');
 
 const sqlconnector = require('../db/SqlConnector');
@@ -75,7 +75,7 @@ async function getActivitiesForDates(from, to) {
         });
 
     } catch (err) {
-        cloudLog(loglevels.error, `Error getting activities: ${err.message}`);
+        log(appLogLevels.ERROR, `Error getting activities: ${err.message}`);
         throw new RESTError(500, "Request failed");
 
     } finally {

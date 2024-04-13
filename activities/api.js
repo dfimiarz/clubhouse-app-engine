@@ -3,7 +3,7 @@ const { query, validationResult } = require('express-validator');
 const activities_ctrl = require('./controller');
 const { authGuard } = require('../middleware/clientauth');
 const RESTError = require('./../utils/RESTError');
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const { validateDateRange } = require('./../utils/DateRangeValidator');
 const { getClubInfo } = require('../club/controller');
 
@@ -50,7 +50,7 @@ router.get('/', authGuard,[
         res.json(result);
 
     } catch (err) {
-        cloudLog(loglevels.error, err);
+        log(appLogLevels.ERROR, err);
         next(new RESTError(err.message, 400));
     }
 });

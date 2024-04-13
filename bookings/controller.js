@@ -11,10 +11,7 @@ const {
   getBooking,
 } = require("./BookingUtils");
 const { transactionType } = require("../utils/dbutils");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./../utils/logger/logger");
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -157,7 +154,7 @@ async function getBookingsForDate(date) {
       await sqlconnector.runQuery(connection, "COMMIT", []);
     }
   } catch (error) {
-    cloudLog(loglevels.error, `Unable to read bookings: ${error.message}`);
+    log(appLogLevels.ERROR, `Unable to read bookings: ${error.message}`);
     throw new Error(error.sqlMessage);
   } finally {
     connection.release();
@@ -240,10 +237,7 @@ async function addBooking(request) {
       const booking = await getNewBooking(connection, initValues);
 
       if (!booking) {
-        cloudLog(
-          loglevels.error,
-          "Unable to create a new booking. Values " + JSON.stringify(initValues)
-        );
+        log(appLogLevels.ERROR, `Unable to create a new booking. Values ${JSON.stringify(initValues)}`);
         throw new RESTError(500, "Unable to create a new booking");
       }
 
@@ -251,13 +245,7 @@ async function addBooking(request) {
       const errors = checkPermission("create", booking);
 
       if (errors.length > 0) {
-        cloudLog(
-          loglevels.error,
-          "Booking permission denied. Booking: " +
-            JSON.stringify(booking) +
-            " Error: " +
-            errors[0]
-        );
+        log(appLogLevels.ERROR, `Booking permission denied. Booking: ${JSON.stringify(booking)} Error: ${errors[0]}`);
         throw new RESTError(422, "Create permission denied: " + errors[0]);
       }
 
@@ -279,10 +267,7 @@ async function addBooking(request) {
           overlapping_ids: Array.from(overlapping_bookings),
         };
 
-        cloudLog(
-          loglevels.warning,
-          `Booking overlap found: ${JSON.stringify(overlap_record)}`
-        );
+        log(appLogLevels.WARNING, `Booking overlap found: ${JSON.stringify(overlap_record)}`);
         throw new RESTError(422, "Booking overlap found.");
       }
       //END
@@ -291,7 +276,7 @@ async function addBooking(request) {
 
       await sqlconnector.runQuery(connection, "COMMIT", []);
 
-      cloudLog(loglevels.info, `Booking added: ${JSON.stringify(booking)}`);
+      log(appLogLevels.INFO, `Booking added: ${JSON.stringify(booking)}`);
     } catch (error) {
       await sqlconnector.runQuery(connection, "ROLLBACK", []);
       throw error;
@@ -323,7 +308,7 @@ async function getBookingData(id) {
     await sqlconnector.runQuery(connection, "COMMIT", []);
 
     if (!booking) {
-      cloudLog(loglevels.error, `Booking ${id} not found`);
+      log(appLogLevels.ERROR, `Booking ${id} not found`);
       throw new RESTError(404, "Booking not found");
     }
 

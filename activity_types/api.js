@@ -2,7 +2,7 @@ const express = require('express');
 const activity_types_ctrl = require('./controller');
 const { authGuard } = require('../middleware/clientauth');
 const RESTError = require('./../utils/RESTError');
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 const router = express.Router();
 
@@ -17,7 +17,7 @@ router.get('/', authGuard ,async (req, res, next) => {
         res.json(result);
 
     } catch (err) {
-        cloudLog(loglevels.error, err);
+        log(appLogLevels.ERROR, err);
         next(new RESTError(err.message, 400));
     }
 });

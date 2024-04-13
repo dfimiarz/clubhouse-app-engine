@@ -1,11 +1,11 @@
 const express = require('express');
 const { validationResult, body, query } = require('express-validator')
 const matchcontroller = require('./controller')
-const { checkBookingPermissions, validatePatchRequest } = require('./middleware')
+const { checkBookingPermissions, validatePatchRequest, validateBatchInsertRequest } = require('./middleware')
 const { authGuard } = require('../middleware/clientauth')
 const RESTError = require('./../utils/RESTError')
 const pusher = require('./../pusher/Pusher')
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 
 const router = express.Router();
@@ -23,7 +23,7 @@ router.get('/', authGuard, [
           const errors = validationResult(req);
 
           if (!errors.isEmpty()) {
-               cloudLog(loglevels.error, "Date error:" + JSON.stringify(errors.array()));
+               log(appLogLevels.ERROR, "Date error:" + JSON.stringify(errors.array()));
                return next(new RESTError(422, "Invalid date parameter"))
           }
 
@@ -54,7 +54,7 @@ router.get('/overlapping', authGuard, [
           const errors = validationResult(req);
 
           if (!errors.isEmpty()) {
-               cloudLog(loglevels.error, "Check Overlap parameter error: " + JSON.stringify(errors.array()));
+               log(appLogLevels.ERROR, "Check Overlap parameter error: " + JSON.stringify(errors.array()));
                return next(new RESTError(422, "Invalid query parameter"))
           }
 
@@ -73,6 +73,23 @@ router.get('/overlapping', authGuard, [
 
      }
 );
+
+router.post('/batch', validateBatchInsertRequest, (req, res, next) => {
+     
+     matchcontroller.addBookingBatch(req)
+          .then(() => {
+               pusher.trigger("bookings", "booking_change", {
+                    date: req.body.date
+               }).catch(err => {
+                    log(appLogLevels.ERROR, `Pusher error in batch: ${err}`);
+               })
+               res.status(201).send()
+          })
+          .catch((err) => {
+               next(err)
+          })
+
+});
 
 router.post('/', [
      body('court').isInt().withMessage("Invalid court id"),
@@ -93,8 +110,8 @@ router.post('/', [
      const errors = validationResult(req);
 
      if (!errors.isEmpty()) {
-          cloudLog(loglevels.error, "Add booking validation error: " + JSON.stringify(errors.array()));
-          return next(new RESTError(422, { fielderrors: errors.array({ onlyFirstError: true }) }))
+          log(appLogLevels.ERROR, "Add booking validation error: " + JSON.stringify(errors.array()));
+          return next(new RESTError(422, { fielderrors: errors.array({ onlyFirstError: true }) }));
      }
 
      matchcontroller.addBooking(req)
@@ -103,7 +120,7 @@ router.post('/', [
                pusher.trigger("bookings", "booking_change", {
                     date: req.body.date
                }).catch(err => {
-                    cloudLog(loglevels.error, `Pusher error in post: ${err}`);
+                    log(appLogLevels.ERROR, `Pusher error in post: ${err}`);
                })
                res.status(201).send()
 
@@ -174,7 +191,7 @@ router.patch('/:id', authGuard, validatePatchRequest,
                     pusher.trigger("bookings", "booking_change", {
                          date: result
                     }).catch(err => {
-                         cloudLog(loglevels.error, `Pusher error in patch: ${err}`);
+                         log(appLogLevels.ERROR, `Pusher error in patch: ${err}`);
                     })
 
                     res.status(204).send()

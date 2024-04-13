@@ -1,4 +1,4 @@
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const RESTError = require('./../utils/RESTError');
 
 const sqlconnector = require('../db/SqlConnector');
@@ -73,7 +73,7 @@ async function getActivityTypes() {
         });
 
     } catch (err) {
-        cloudLog(loglevels.error, `Error getting activity types: ${err.message}`);
+        log(appLogLevels.ERROR, `Error getting activity types: ${err.message}`);
         throw new RESTError(500, "Request failed");
 
     } finally {

@@ -1,10 +1,7 @@
 const sqlconnector = require("../db/SqlConnector");
 const club_id = process.env.CLUB_ID;
 const SQLErrorFactory = require("./../utils/SqlErrorFactory");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./../utils/logger/logger");
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 const constatnts = require("./../utils/dbconstants");
 
@@ -195,16 +192,8 @@ async function addGuest(request) {
       ]);
 
       await sqlconnector.runQuery(connection, "COMMIT", []);
-
-      cloudLog(
-        loglevels.info,
-        `Guest added: ${JSON.stringify({
-          firstname: formattedFirstName,
-          lastname: formattedLastName,
-          email: email,
-          phone: phone,
-        })}`
-      );
+      
+      log(appLogLevels.INFO, `Guest added: ${JSON.stringify({ firstname: formattedFirstName, lastname: formattedLastName, email: email, phone: phone })}`);
     } catch (error) {
       await sqlconnector.runQuery(connection, "ROLLBACK", []);
       throw error;

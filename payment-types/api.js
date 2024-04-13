@@ -2,10 +2,6 @@ const express = require("express");
 const controller = require("./controller");
 const { authGuard } = require("../middleware/clientauth");
 const RESTError = require("./../utils/RESTError");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./../utils/logger/logger");
 
 /**
  * @typedef {import("./types").PaymentType} PaymentType;

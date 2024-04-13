@@ -2,7 +2,7 @@ const sqlconnector = require('../db/SqlConnector')
 const RESTError = require('./../utils/RESTError');
 const { checkPermission } = require('./permissions/BookingPermissions');
 const { getBooking, insertBooking, getNewBooking, checkOverlap } = require('./BookingUtils');
-const { cloudLog, cloudLogLevels: loglevels } = require('./../utils/logger/logger');
+const { log, appLogLevels } = require('./../utils/logger/logger');
 const { transactionType } = require("../utils/dbutils");
 
 const CLUB_ID = process.env.CLUB_ID;
@@ -27,17 +27,17 @@ async function endSession(id, cmd) {
             const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
-                cloudLog(loglevels.error, "Unable to end. Booking access error:  " + JSON.stringify({ id: id, hash: cmd.hash }));
+                log(appLogLevels.ERROR, "Unable to end. Booking access error:  " + JSON.stringify({ id: id, hash: cmd.hash }));
                 throw new RESTError(422, "Unable to read booknig data");
             }
 
             if( booking.club_id != CLUB_ID){
-                cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
+                log(appLogLevels.ERROR, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
             }
 
             if( booking.etag != etag){
-                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                log(appLogLevels.ERROR, `Booking ${id} etag mismatch`);
                 throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
@@ -45,7 +45,7 @@ async function endSession(id, cmd) {
             const errors = checkPermission('end', booking);
 
             if (errors.length > 0) {
-                cloudLog(loglevels.warning, "Permission to end denied: " + JSON.stringify(errors));
+                log(appLogLevels.WARNING, "Permission to end denied: " + JSON.stringify(errors));
                 throw new RESTError(422, "Permission to end denied: " + errors[0]);
             }
 
@@ -53,7 +53,7 @@ async function endSession(id, cmd) {
 
             await sqlconnector.runQuery(connection, "COMMIT", [])
 
-            cloudLog(loglevels.info, "Booking ended: " + JSON.stringify(booking));
+            log(appLogLevels.INFO, "Booking ended: " + JSON.stringify(booking));
 
             return booking.date;
         }
@@ -83,17 +83,17 @@ async function removeSession(id, cmd) {
             const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
-                cloudLog(loglevels.error, "Unable to cancel. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
+                log(appLogLevels.ERROR, "Unable to cancel. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
                 throw new RESTError(422, "Unable to read booknig data");
             }
 
             if( booking.club_id != CLUB_ID){
-                cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
+                log(appLogLevels.ERROR, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
             }
 
             if( booking.etag != etag){
-                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                log(appLogLevels.ERROR, `Booking ${id} etag mismatch`);
                 throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
@@ -101,15 +101,15 @@ async function removeSession(id, cmd) {
             const errors = checkPermission('cancel', booking);
 
             if (errors.length > 0) {
-                cloudLog(loglevels.warning, "Permission to cancel denied: " + JSON.stringify(errors));
+                log(appLogLevels.WARNING, "Permission to remove denied: " + JSON.stringify(errors));
                 throw new RESTError(422, "Permission to remove denied: " + errors[0]);
             }
 
-            await sqlconnector.runQuery(connection, remove_activity_q, [id])
+            await sqlconnector.runQuery(connection, remove_activity_q, [id]);
 
-            await sqlconnector.runQuery(connection, "COMMIT", [])
+            await sqlconnector.runQuery(connection, "COMMIT", []);
 
-            cloudLog(loglevels.info, "Booking cancelled: " + JSON.stringify(booking));
+            log(appLogLevels.INFO, "Booking cancelled: " + JSON.stringify(booking));
 
             return booking.date;
         }
@@ -144,17 +144,17 @@ async function changeSessionTime(id, cmd) {
             const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
-                cloudLog(loglevels.error, "Unable to change time. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
+                log(appLogLevels.ERROR, "Unable to change time. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
                 throw new RESTError(422, "Unable to read booknig data");
             }
 
             if( booking.club_id != CLUB_ID){
-                cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
+                log(appLogLevels.ERROR, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
             }
 
             if( booking.etag != etag){
-                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                log(appLogLevels.ERROR, `Booking ${id} etag mismatch`);
                 throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
@@ -162,7 +162,7 @@ async function changeSessionTime(id, cmd) {
             const move_errors = checkPermission('move', booking);
 
             if (move_errors.length > 0) {
-                cloudLog(loglevels.warning, "Unable to change time. Permission to move denied: " + JSON.stringify(move_errors));
+                log(appLogLevels.WARNING, "Unable to change time. Permission to move denied: " + JSON.stringify(move_errors));
                 throw new RESTError(422, "Permission to move denied: " + move_errors[0]);
             }
 
@@ -186,7 +186,7 @@ async function changeSessionTime(id, cmd) {
             //Check permissions
             const create_errors = checkPermission('create', movedbooking);
             if (create_errors.length > 0) {
-                cloudLog(loglevels.warning, "Unable to change time. Create permission denied: " + JSON.stringify(create_errors));
+                log(appLogLevels.WARNING, "Unable to change time. Create permission denied: " + JSON.stringify(create_errors));
                 throw new RESTError(422, "Create permission denied: " + create_errors[0]);
             }
 
@@ -202,7 +202,7 @@ async function changeSessionTime(id, cmd) {
                     overlapping_ids: Array.from(overlapping_bookings)
                 }
 
-                cloudLog(loglevels.warning, `Booking overlap found while changing time: ${JSON.stringify(overlap_record)}`);
+                log(appLogLevels.WARNING, "Booking overlap found while changing time: " + JSON.stringify(overlap_record));
                 throw new RESTError(422, "Booking overlap found. Pick different time.");
             }
             //END
@@ -216,7 +216,7 @@ async function changeSessionTime(id, cmd) {
                 moved_id: insertid
             }
 
-            cloudLog(loglevels.info, `Booking time changed:` + JSON.stringify(change_record));
+            log(appLogLevels.INFO, "Booking time changed: " + JSON.stringify(change_record));
 
             return movedbooking.date;
         }
@@ -249,17 +249,17 @@ async function changeCourt(id, cmd) {
             const booking = await getBooking(connection, id, transactionType.WRITE_TRANSACTION);
 
             if (!booking) {
-                cloudLog(loglevels.error, "Unable to change court. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
+                log(appLogLevels.ERROR, "Unable to change court. Booking access error: " + JSON.stringify({ id: id, hash: cmd.hash }));
                 throw new RESTError(422, "Unable to read booknig data");
             }
 
             if( booking.club_id != CLUB_ID){
-                cloudLog(loglevels.error, `Booking ${id} does not belong to club ${CLUB_ID}`);
+                log(appLogLevels.ERROR, `Booking ${id} does not belong to club ${CLUB_ID}`);
                 throw new RESTError(422, "Booking does not belong to this club");
             }
 
             if( booking.etag != etag){
-                cloudLog(loglevels.error, `Booking ${id} etag mismatch`);
+                log(appLogLevels.ERROR, `Booking ${id} etag mismatch`);
                 throw new RESTError(422, "Booking has changed. Please refresh");
             }
 
@@ -267,7 +267,7 @@ async function changeCourt(id, cmd) {
             const move_errors = checkPermission('move', booking);
 
             if (move_errors.length > 0) {
-                cloudLog(loglevels.warning, "Unable to change court. Permission to move denied: " + JSON.stringify(move_errors));
+                log(appLogLevels.WARNING, "Unable to change court. Permission to move denied: " + JSON.stringify(move_errors));
                 throw new RESTError(422, "Permission to move denied: " + move_errors[0]);
             }
 
@@ -279,7 +279,7 @@ async function changeCourt(id, cmd) {
                     court_id: booking.court_id
                 }
 
-                cloudLog(loglevels.warning, `Court has not changed: ${JSON.stringify(change_record)} `)
+                log(appLogLevels.WARNING, "Court has not changed: " + JSON.stringify(change_record));
                 throw new RESTError(422, "Court has not changed");
             }
 
@@ -328,7 +328,7 @@ async function changeCourt(id, cmd) {
             //Check permissions
             const create_errors = checkPermission('create', movedbooking);
             if (create_errors.length > 0) {
-                cloudLog(loglevels.warning, "Unable to change court. Permission to create denied: " + JSON.stringify(create_errors));
+                log(appLogLevels.WARNING, "Unable to change court. Permission to create denied: " + JSON.stringify(create_errors));
                 throw new RESTError(422, `Create permission denied: ${create_errors[0]} `);
             }
 
@@ -344,7 +344,7 @@ async function changeCourt(id, cmd) {
                     overlapping_ids: Array.from(overlapping_bookings)
                 }
 
-                cloudLog(loglevels.warning, `Booking overlap found while changing court: ${JSON.stringify(overlap_record)}`);
+                log(appLogLevels.WARNING, "Booking overlap found while changing court: " + JSON.stringify(overlap_record));
                 throw new RESTError(422, "Booking overlap found. Pick a different court.");
             }
             //END
@@ -357,8 +357,8 @@ async function changeCourt(id, cmd) {
                 orig_id: booking.id,
                 moved_id: insertid
             }
-
-            cloudLog(loglevels.info, `Court changed: ${JSON.stringify(change_record)}`);
+            
+            log(appLogLevels.INFO, "Court changed: " + JSON.stringify(change_record));
 
             return movedbooking.date;
 

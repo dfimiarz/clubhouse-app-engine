@@ -1,8 +1,5 @@
 const Redis = require("ioredis");
-const {
-  cloudLog,
-  cloudLogLevels: loglevels,
-} = require("./../utils/logger/logger");
+const { log, appLogLevels } = require('./../utils/logger/logger');
 
 const client = new Redis({
   host: process.env.REDIS_HOST,
@@ -22,7 +19,7 @@ async function getJSON(key) {
     const redisData = await client.call("JSON.GET",key);
     return JSON.parse(redisData);
   } catch (err) {
-    cloudLog(loglevels.warning, `Error getting info from redis: ${err}`);
+    log(appLogLevels.ERROR, `Error getting info from redis: ${err}`);
   }
 }
 
@@ -35,7 +32,7 @@ async function storeJSON(key, data) {
   try {
     const result = await client.call("JSON.SET",key, "$", JSON.stringify(data));
   } catch (err) {
-    cloudLog(loglevels.warning, `Error saving value to redis: ${err}`);
+    log(appLogLevels.WARNING, `Error saving value to redis: ${err}`);
   }
 }
 
