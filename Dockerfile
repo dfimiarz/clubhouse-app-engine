@@ -1,12 +1,10 @@
 FROM node:21-alpine
 
-USER node
-
 WORKDIR /home/node/app
 
-COPY --chown=node . .
+COPY . .
 
-RUN yarn install --production && yarn cache clean
+RUN yarn install --frozen-lockfile --production && yarn cache clean
 
 CMD ["yarn", "start"]
 
