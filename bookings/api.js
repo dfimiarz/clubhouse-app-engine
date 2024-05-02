@@ -135,7 +135,7 @@ router.post('/', [
 
 router.get('/:id', authGuard, (req, res, next) => {
 
-     const id = req.params.id ? req.params.id : null
+     const id = req.params.id ? req.params.id : null;
 
      matchcontroller.getBookingData(id)
           .then((booking) => {
@@ -144,7 +144,7 @@ router.get('/:id', authGuard, (req, res, next) => {
           })
           .catch((err) => {
                next(err)
-          })
+          });
 },
      checkBookingPermissions,
      // eslint-disable-next-line no-unused-vars
