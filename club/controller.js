@@ -2,6 +2,7 @@ const sqlconnector = require('../db/SqlConnector');
 const RESTError = require('./../utils/RESTError');
 const { storeJSON, getJSON } = require('./../db/RedisConnector');
 const { log, appLogLevels } = require('./../utils/logger/logger');
+const e = require('express');
 
 const CLUB_ID = process.env.CLUB_ID;
 
@@ -34,11 +35,18 @@ async function getClubInfo() {
                             club
                         WHERE id = ?`;
 
+    //Get images used by by the club
+    const image_query = `SELECT
+                            name,
+                            src
+                        FROM
+                            images
+                        WHERE
+                            club = ?`;
+
     const connection = await sqlconnector.getConnection();
 
     try {
-
-        //TODO Add redis cache here
 
         const club_results = await sqlconnector.runQuery(connection, club_query, [CLUB_ID]);
 
@@ -57,6 +65,22 @@ async function getClubInfo() {
             default_cal_start_min: club["default_cal_start_min"],
             default_cal_end: club["default_cal_end"],
             default_cal_end_min: club["default_cal_end_min"],
+        }
+
+        const images_results = await sqlconnector.runQuery(connection, image_query, [CLUB_ID]);
+
+        if( Array.isArray(images_results) && images_results.length > 0) {
+
+            result.images = images_results.map((image) => {
+                return {
+                    name: image["name"],
+                    src: image["src"]
+                }
+            }
+            );
+        }
+        else {
+            result.images = [];
         }
 
         //Store club info in redis
