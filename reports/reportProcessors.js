@@ -6,13 +6,13 @@ const RESTError = require('./../utils/RESTError');
 const CLUB_ID = process.env.CLUB_ID;
 
 /**
- *  @param {string} name Report name
- *  @param {string} from Date in ISO format
- *  @param {string} to Date in ISO format
- *  @returns {Object}   Object with the following properties:
- *  - {string} from Date in ISO format
- *  - {string} to Date in ISO format
- *  - {string} type Report type  
+ *  @param {String} name Report name
+ *  @param {String} from Start date in ISO format
+ *  @param {String} to End date in ISO format
+ *  @returns {Array<Object>}   Array of objects with the following properties:
+ * - {String} date Date in ISO format
+ * - {Number} time_played Total time played in minutes
+ * - {Number} player_count Number of players
  *  
  */
 const playerStatsProcessor = async (name, from, to) => {
@@ -45,15 +45,15 @@ const playerStatsProcessor = async (name, from, to) => {
             throw new Error("Unable to retrieve report data");
         }
 
-        //get dates between from and to in a map
+        // Get dates between from and to in a map
         const resultMap = getDateMap(from, to, {time_played: 0, player_count: 0});
 
-        //put data in stats map
+        // For each row in the result, update the corresponding entry in resultMap with the time played and player count from the row.
         result.forEach(row => {
             resultMap.set(row.date, { time_played: row.time_played, player_count: row.player_count });
         });
 
-        //return sorted stats as an array
+        // Convert the resultMap to an array of objects, each with properties 'date', 'time_played', and 'player_count'.
         return Array.from(resultMap, ([date, value]) => ({ date: date, time_played: value.time_played, player_count: value.player_count }));
 
     } catch (err) {
@@ -70,10 +70,10 @@ const playerStatsProcessor = async (name, from, to) => {
  * 
  * @param {string} startDate ISO8601 date string
  * @param {string} endDate ISO8601 date string
- * @param {Object|Number} initialValue Initial value for the map
+ * @param {Number} initialValue Initial value for the map
  * @returns {Map} A map of ordered dates between startDate and endDate with the following properties:
- *  - {string} date Date in ISO format
- *  - {Object|Number} initialValue Initial value for the map
+ *  - {string} date Date in ISO8601 format
+ *  - {Number} initialValue Initial value for the map
  */
 function getDateMap(startDate, endDate, initialValue = 0) {
     const dates = new Map();
@@ -94,18 +94,18 @@ function getDateMap(startDate, endDate, initialValue = 0) {
 
 const memberActivitiesProcessor = async function (name, from, to) {
     const activities_q =
-        `SELECT 
+        `SELECT
         p.id AS participant_id,
         a.id AS activity_id,
         c.name AS court,
-        person_type.lbl AS person_type,
         DATE_FORMAT(a.date, GET_FORMAT(DATE, 'ISO')) AS date,
         a.start,
         a.end,
         ROUND((TIME_TO_SEC(end) - TIME_TO_SEC(start)) / 60,
                 2) AS dur_min,
         CONCAT(pr.firstname, ' ', pr.lastname) AS player,
-        pt.desc AS player_type
+        pt.desc AS player_type,
+        role.lbl AS member_role
     FROM
         activity a
             JOIN
@@ -121,12 +121,15 @@ const memberActivitiesProcessor = async function (name, from, to) {
             JOIN
         activity_group ag ON ag.id = at.group
             JOIN
-        person_type ON person_type.id = pr.type
+        membership m on pr.id = m.person_id
+            JOIN
+        role on m.role = role.id
     WHERE
-        a.active = 1 
+        a.active = 1
         AND ag.id = 1
         AND a.date BETWEEN ? AND ?
         AND pr.club = ?
+        AND m.valid_from <= a.date AND m.valid_until > a.date
     ORDER BY date , start`;
 
     const connection = await sqlconnector.getConnection();
@@ -149,8 +152,8 @@ const memberActivitiesProcessor = async function (name, from, to) {
                 end: row.end,
                 dur_min: row.dur_min,
                 player: row.player,
-                person_type: row.person_type,
-                player_type: row.player_type
+                player_type: row.player_type,
+                member_role: row.member_role,
             }
         });
 
